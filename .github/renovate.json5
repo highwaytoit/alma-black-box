@@ -7,5 +7,20 @@
       matchManagers: ["github-actions"],
       pinDigests: true
     }
+  ],
+  customManagers: [
+    {
+      customType: "regex",
+      description: "Track the pinned Cockpit web-service container image",
+      managerFilePatterns: ["/^build_files\\/software\\.env$/"],
+      matchStrings: [
+        "COCKPIT_WS_IMAGE=\\\"quay\\.io/cockpit/ws:(?<currentValue>[^\\\"\\s]+)\\\""
+      ],
+      depNameTemplate: "cockpit/ws",
+      packageNameTemplate: "cockpit/ws",
+      datasourceTemplate: "docker",
+      registryUrlTemplate: "https://quay.io",
+      versioningTemplate: "docker"
+    }
   ]
 }
