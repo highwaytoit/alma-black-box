@@ -1,14 +1,18 @@
 # Alma Black Box installer ISO
 
-Alma Black Box uses the published bootc image as the operating-system source of truth. The installer ISO is disposable bootstrap media generated from that image with osbuild's bootc image builder.
+Alma Black Box uses the published bootc image as the operating-system source of truth. The installer ISO is disposable bootstrap media generated with osbuild's bootc image builder.
+
+The ISO uses the `bootc-installer` image type. A dedicated AlmaLinux bootc installer container supplies Anaconda and Lorax only for ISO construction; those installer packages are not added to the production Alma Black Box image. The verified Alma Black Box image is supplied separately as the installer payload.
 
 ## Build policy
 
 The installer workflow is separate from the normal operating-system image build.
 
-It can be started manually from GitHub Actions and is also scheduled once per month. The workflow resolves `ghcr.io/highwaytoit/alma-black-box:10` to its current amd64 digest, verifies that exact digest with the repository Cosign public key, and builds the installer from the verified reference.
+It can be started manually from GitHub Actions and is also scheduled once per month. The workflow resolves `ghcr.io/highwaytoit/alma-black-box:10` to its current amd64 digest, verifies that exact digest with the repository Cosign public key, and uses that verified reference as the payload embedded into the installer ISO.
 
-The installer workflow intentionally does not use `--use-librepo=True`.
+The dedicated installer environment is built from `installer/Containerfile`. The partitioning and initial account remain defined by the Kickstart content in `installer/iso.toml`.
+
+This design avoids the legacy `anaconda-iso` path that builds the installer environment by downloading its RPM payload during the ISO build.
 
 ## Destructive installation model
 
