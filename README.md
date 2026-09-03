@@ -63,7 +63,7 @@ Each main-branch build also receives an immutable build tag such as:
 ghcr.io/highwaytoit/alma-black-box:10-20260902-abcdef1
 ```
 
-Images are signed with Cosign. This repository reuses the same public signing key as the related Home Server uCore project; the private key is expected in the repository secret named `SIGNING_SECRET`.
+Images are signed with Cosign.
 
 ## Local documentation
 
