@@ -15,6 +15,8 @@ RUN dnf install -y \
     dracut-network \
     net-tools \
     squashfs-tools \
+    shim-x64 \
+    grub2-efi-x64 \
     grub2-efi-x64-cdboot \
     python3-mako \
     lorax-templates-* \
@@ -22,9 +24,10 @@ RUN dnf install -y \
     prefixdevname \
     && dnf clean all
 
-# Lorax expects the EFI payload in /boot/efi when constructing the ISO.
-RUN mkdir -p /boot/efi \
-    && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
+# AlmaLinux EFI packages install their payload directly below /boot/efi.
+# Do not use the Fedora-specific /usr/lib/efi copy workaround here.
+RUN test -d /boot/efi/EFI \
+    && test -n "$(find /boot/efi/EFI -type f -iname '*.efi' -print -quit)"
 
 # Lorax creates links below /mnt while bootc systems use /var/mnt.
 RUN mkdir -p /var/mnt
