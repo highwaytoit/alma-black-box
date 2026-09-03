@@ -97,7 +97,7 @@ jobs:
             -c '
               set -euo pipefail
               bootc container lint --fatal-warnings
-              rpm -q nut nut-client selinux-policy-extra cockpit-system cockpit-podman cockpit-storaged
+              rpm -q nut nut-client selinux-policy-extra cockpit-system cockpit-files cockpit-podman cockpit-storaged
               command -v tailscale
               command -v netbird
               command -v fwupdmgr
