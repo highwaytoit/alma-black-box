@@ -16,6 +16,7 @@ RUN dnf install -y \
     net-tools \
     squashfs-tools \
     shim-x64 \
+    grub2-common \
     grub2-efi-x64 \
     grub2-efi-x64-cdboot \
     python3-mako \
@@ -24,10 +25,22 @@ RUN dnf install -y \
     prefixdevname \
     && dnf clean all
 
-# AlmaLinux EFI packages install their payload directly below /boot/efi.
-# Do not use the Fedora-specific /usr/lib/efi copy workaround here.
-RUN test -d /boot/efi/EFI \
-    && test -n "$(find /boot/efi/EFI -type f -iname '*.efi' -print -quit)"
+# bootc images can record EFI packages as installed while omitting ordinary
+# /boot payload files. Reinstall the Alma EFI packages so osbuild's ISO stage
+# gets the exact vendor files it expects under /boot/efi/EFI/almalinux.
+RUN dnf reinstall -y \
+    shim-x64 \
+    grub2-common \
+    grub2-efi-x64 \
+    grub2-efi-x64-cdboot \
+    && dnf clean all
+
+# Fail during the installer-container build if any file required by
+# org.osbuild.grub2.iso is missing, rather than failing later in ISO assembly.
+RUN test -f /boot/efi/EFI/almalinux/shimx64.efi \
+    && test -f /boot/efi/EFI/almalinux/mmx64.efi \
+    && test -f /boot/efi/EFI/almalinux/gcdx64.efi \
+    && test -f /usr/share/grub/unicode.pf2
 
 # Lorax creates links below /mnt while bootc systems use /var/mnt.
 RUN mkdir -p /var/mnt
