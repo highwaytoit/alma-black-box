@@ -1,0 +1,30 @@
+ARG ALMA_BOOTC_IMAGE=quay.io/almalinuxorg/almalinux-bootc:10
+FROM ${ALMA_BOOTC_IMAGE}
+
+LABEL org.opencontainers.image.title="Alma Black Box bootc installer environment" \
+      org.opencontainers.image.description="Disposable AlmaLinux bootc container used only to build the Alma Black Box installer ISO"
+
+# bootc-installer uses this container as the Anaconda/Lorax environment.
+# These packages are installer-only and are intentionally not added to the
+# production Alma Black Box image.
+RUN dnf install -y \
+    anaconda \
+    anaconda-install-env-deps \
+    anaconda-dracut \
+    dracut-config-generic \
+    dracut-network \
+    net-tools \
+    squashfs-tools \
+    grub2-efi-x64-cdboot \
+    python3-mako \
+    lorax-templates-* \
+    biosdevname \
+    prefixdevname \
+    && dnf clean all
+
+# Lorax expects the EFI payload in /boot/efi when constructing the ISO.
+RUN mkdir -p /boot/efi \
+    && cp -ra /usr/lib/efi/*/*/EFI /boot/efi
+
+# Lorax creates links below /mnt while bootc systems use /var/mnt.
+RUN mkdir -p /var/mnt
