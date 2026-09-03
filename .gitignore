@@ -1,0 +1,6 @@
+output/
+*.qcow2
+*.raw
+*.iso
+*.log
+.DS_Store

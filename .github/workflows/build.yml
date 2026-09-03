@@ -1,0 +1,195 @@
+---
+name: Build signed Alma Black Box image
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/README.md'
+      - 'docs/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '20 4 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  ALMA_BOOTC_IMAGE: quay.io/almalinuxorg/almalinux-bootc:10
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/alma-black-box
+  CURRENT_TAG: '10'
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y podman skopeo jq
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.1.2'
+
+      - name: Resolve and verify AlmaLinux bootc base
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Follow AlmaLinux Atomic CI's upstream trust model: verify the
+          # published bootc reference with Alma's public key before using it.
+          cosign verify --key almalinux-bootc.pub "${ALMA_BOOTC_IMAGE}" >/tmp/alma-verify.json
+          jq -e 'length > 0' /tmp/alma-verify.json >/dev/null
+
+          # Build from a resolved amd64 digest so this workflow never changes
+          # base image midway through the actual container build.
+          digest="$(skopeo inspect \
+            --override-arch amd64 \
+            --format '{{.Digest}}' \
+            "docker://${ALMA_BOOTC_IMAGE}")"
+
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          ref="${ALMA_BOOTC_IMAGE}@${digest}"
+
+          echo "Verified tag and resolved upstream: ${ref}"
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build image
+        shell: bash
+        env:
+          UPSTREAM_REF: ${{ steps.upstream.outputs.ref }}
+        run: |
+          set -euo pipefail
+          sudo podman build \
+            --pull=always \
+            --build-arg "ALMA_BOOTC_IMAGE=${UPSTREAM_REF}" \
+            --build-arg "IMAGE_REPOSITORY=${IMAGE_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --tag alma-black-box:test \
+            --file Containerfile \
+            .
+
+      - name: Validate completed image
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo podman run --rm \
+            --entrypoint /bin/bash \
+            alma-black-box:test \
+            -c '
+              set -euo pipefail
+              bootc container lint --fatal-warnings
+              rpm -q nut nut-client selinux-policy-extra cockpit-system cockpit-podman cockpit-storaged
+              command -v tailscale
+              command -v netbird
+              command -v fwupdmgr
+              command -v smartctl
+              command -v micro
+              test -f /usr/share/cockpit/upside/manifest.json
+              test -f /usr/share/alma-black-box/quadlets/cockpit.container
+              test -f /usr/share/doc/alma-black-box/README.md
+              jq empty /etc/containers/policy.json
+            '
+
+      - name: Prepare release tags
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA:0:7}"
+          build_tag="10-$(date -u +%Y%m%d)-${short_sha}"
+          echo "BUILD_TAG=${build_tag}" >> "${GITHUB_ENV}"
+          echo "Publishing ${IMAGE_REPOSITORY}:${CURRENT_TAG} and ${IMAGE_REPOSITORY}:${build_tag}"
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${GHCR_TOKEN}" | sudo podman login ghcr.io \
+            --username "${GITHUB_ACTOR}" \
+            --password-stdin
+
+      - name: Push image
+        id: push
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo podman tag alma-black-box:test "${IMAGE_REPOSITORY}:${BUILD_TAG}"
+          sudo podman tag alma-black-box:test "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+
+          sudo podman push \
+            --digestfile /tmp/digest \
+            "${IMAGE_REPOSITORY}:${BUILD_TAG}"
+
+          sudo podman push "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+
+          digest="$(cat /tmp/digest)"
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          echo "Published digest: ${digest}"
+
+      - name: Sign image digest
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign -y \
+            --new-bundle-format=false \
+            --use-signing-config=false \
+            --key env://COSIGN_PRIVATE_KEY \
+            "${IMAGE_REPOSITORY}@${DIGEST}"
+
+      - name: Verify published signature
+        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        shell: bash
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign verify \
+            --key cosign.pub \
+            "${IMAGE_REPOSITORY}@${DIGEST}"
+
+      - name: Build summary
+        if: always()
+        shell: bash
+        env:
+          UPSTREAM_DIGEST: ${{ steps.upstream.outputs.digest }}
+          PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          {
+            echo '## Alma Black Box'
+            echo
+            echo "- Upstream: ${ALMA_BOOTC_IMAGE}@${UPSTREAM_DIGEST}"
+            if [[ -n "${PUBLISHED_DIGEST:-}" ]]; then
+              echo "- Published: ${IMAGE_REPOSITORY}@${PUBLISHED_DIGEST}"
+            else
+              echo '- Published: not applicable for this run'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"

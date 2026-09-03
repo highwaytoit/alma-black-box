@@ -1,0 +1,24 @@
+Alma Black Box v1 source validation
+Date: 2026-09-02
+
+PASSED: Bash syntax - build_files/build.sh
+PASSED: Bash syntax - build_files/install-image-trust.sh
+PASSED: Bash syntax - build_files/software.env
+PASSED: YAML parse - .github/workflows/build.yml
+PASSED: Required repository files present
+PASSED: Cockpit Quadlet source placeholder present
+PASSED: Cosign public key present
+PASSED: AlmaLinux bootc public key present
+
+Externally verified before packaging:
+- AlmaLinux Atomic Desktop extends quay.io/almalinuxorg/almalinux-bootc:10 and runs bootc container lint.
+- AlmaLinux Atomic CI verifies the upstream bootc image with almalinux-bootc.pub.
+- AlmaLinux 10.2 enables CRB by default; selinux-policy-extra is available from CRB.
+- NUT/nut-client, btop, and micro are available for EL10/EPEL.
+- Podman Quadlet supports Exec=, Volume=, PodmanArgs=, and [Install] WantedBy=.
+- Quadlet services are started with systemctl start; boot enablement comes from the Quadlet [Install] section.
+- Cockpit 366 is the current upstream release as of this validation date.
+
+NOT YET RUN: Full OCI image build and boot validation.
+Reason: the artifact-generation environment does not provide Podman/Buildah.
+The first GitHub Actions build and VM boot are the next validation boundary.
