@@ -51,7 +51,7 @@ Future monitoring applications will be shipped as inactive, tested Quadlet templ
 
 ## Image
 
-After the first successful build, the current image will be published as:
+The current image is published as:
 
 ```text
 ghcr.io/highwaytoit/alma-black-box:10
@@ -67,11 +67,18 @@ Images are signed with Cosign.
 
 ## Installer ISO
 
-A separate osbuild workflow produces an unattended UEFI `bootc-installer` ISO. A dedicated AlmaLinux bootc installer container provides Anaconda/Lorax for ISO construction, while the signed `:10` Alma Black Box image remains the separate verified installation payload.
+Alma Black Box is distributed primarily as a bootc container image. A bootable unattended installer ISO can be generated on demand with the separate **Alma Black Box ISO Builder** template:
 
-The installer is deliberately destructive and is intended to see only one target disk. Its v1 layout is 512 MiB EFI, 1 GiB `/boot`, and XFS `/` using the remainder of the disk. The temporary local administrator is `bbox` with password `bbox`; root is locked and the temporary password should be changed immediately after first boot.
+https://github.com/highwaytoit/alma-black-box-iso
 
-See [docs/INSTALLER.md](docs/INSTALLER.md) before booting the ISO.
+Click **Use this template**, create a repository in your own GitHub account, then manually run **Build Alma Black Box installer ISO** from GitHub Actions. The template defaults to `ghcr.io/highwaytoit/alma-black-box:10` and resolves that tag to its current immutable digest at build time, so a future build automatically uses the current Alma Black Box image.
+
+The installer is deliberately destructive and is intended to see only one target disk. Its default layout is 512 MiB EFI, 1 GiB `/boot`, and XFS `/` using the remainder of the disk. The temporary local administrator is `bbox` with password `bbox`; root is locked and the temporary password should be changed immediately after first boot.
+
+> [!CAUTION]
+> Disconnect every disk except the intended installation disk before booting the unattended ISO on physical hardware.
+
+See the ISO Builder README for build, download, customization, partition-layout, and password instructions.
 
 ## Local documentation
 
@@ -94,7 +101,7 @@ See [docs/QUADLETS.md](docs/QUADLETS.md) for the supported copy and symlink depl
 Version 1 is deliberately narrow. It should prove:
 
 1. The custom Alma bootc image builds and is signed.
-2. The installer ISO installs the image correctly in a UEFI VM with the intended partition layout.
+2. An installer ISO generated from the ISO Builder template installs the image correctly in a UEFI VM with the intended partition layout.
 3. The installed image boots in a VM.
 4. Native host tools are present.
 5. Tailscale and NetBird are installed but not enrolled.
