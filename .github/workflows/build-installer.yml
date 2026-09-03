@@ -1,0 +1,128 @@
+---
+name: Build Alma Black Box installer ISO
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '40 5 1 * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/alma-black-box
+  CURRENT_TAG: '10'
+  BIB_IMAGE: quay.io/centos-bootc/bootc-image-builder:latest
+
+jobs:
+  build-installer:
+    name: Build unattended UEFI installer
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Maximize build space
+        uses: ublue-os/remove-unwanted-software@cc0becac701cf642c8f0a6613bbdaf5dc36b259e # v9
+        with:
+          remove-codeql: true
+
+      - name: Install verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y jq skopeo
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.1.2'
+
+      - name: Resolve and verify Alma Black Box image
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          image="${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+          digest="$(skopeo inspect \
+            --override-arch amd64 \
+            --format '{{.Digest}}' \
+            "docker://${image}")"
+
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          ref="${IMAGE_REPOSITORY}@${digest}"
+
+          cosign verify \
+            --new-bundle-format=false \
+            --key cosign.pub \
+            "${ref}" >/tmp/alma-black-box-verify.json
+          jq -e 'length > 0' /tmp/alma-black-box-verify.json >/dev/null
+
+          echo "Verified installer source: ${ref}"
+          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
+          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build installer ISO
+        id: build
+        uses: osbuild/bootc-image-builder-action@420b8dc257bd7059f1511b9ae47ed29ce82d2209
+        with:
+          builder-image: ${{ env.BIB_IMAGE }}
+          config-file: ./installer/iso.toml
+          image: ${{ steps.source.outputs.ref }}
+          types: anaconda-iso
+
+      - name: Prepare downloadable ISO
+        shell: bash
+        env:
+          OUTPUT_DIR: ${{ steps.build.outputs.output-directory }}
+        run: |
+          set -euo pipefail
+
+          iso_path="$(find "${OUTPUT_DIR}" -type f -name '*.iso' -print -quit)"
+          if [[ -z "${iso_path}" || ! -f "${iso_path}" ]]; then
+            echo "Installer ISO was not produced."
+            exit 1
+          fi
+
+          mkdir -p installer-artifact
+          cp "${iso_path}" installer-artifact/alma-black-box-10-installer.iso
+          (
+            cd installer-artifact
+            sha256sum alma-black-box-10-installer.iso > SHA256SUMS
+          )
+
+      - name: Upload installer ISO
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: alma-black-box-10-installer
+          path: installer-artifact/
+          if-no-files-found: error
+          retention-days: 35
+          compression-level: 0
+          overwrite: true
+
+      - name: Installer summary
+        shell: bash
+        env:
+          SOURCE_DIGEST: ${{ steps.source.outputs.digest }}
+        run: |
+          {
+            echo '## Alma Black Box installer'
+            echo
+            echo "- Source image: ${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+            echo "- Verified digest: ${SOURCE_DIGEST}"
+            echo '- Installer type: unattended Anaconda ISO'
+            echo '- Firmware target: UEFI'
+            echo '- EFI system partition: 512 MiB'
+            echo '- /boot: 1 GiB XFS'
+            echo '- /: XFS using remaining disk space'
+            echo '- Temporary administrator: bbox / bbox'
+          } >> "${GITHUB_STEP_SUMMARY}"
