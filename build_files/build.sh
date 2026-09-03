@@ -83,7 +83,12 @@ for cmd in \
     command -v "${cmd}"
 done
 
-rpm -q selinux-policy-extra cockpit-system cockpit-podman cockpit-storaged
+rpm -q \
+    selinux-policy-extra \
+    cockpit-system \
+    cockpit-files \
+    cockpit-podman \
+    cockpit-storaged
 
 # nut-client can be unpacked before the main nut package creates its account,
 # which produces RPM ownership warnings during the transaction. Require the
