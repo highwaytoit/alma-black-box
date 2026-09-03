@@ -67,7 +67,7 @@ Images are signed with Cosign.
 
 ## Installer ISO
 
-A separate osbuild workflow produces an unattended UEFI installation ISO from the signed `:10` bootc image. The workflow can be started manually and also rebuilds once per month.
+A separate osbuild workflow produces an unattended UEFI `bootc-installer` ISO. A dedicated AlmaLinux bootc installer container provides Anaconda/Lorax for ISO construction, while the signed `:10` Alma Black Box image remains the separate verified installation payload.
 
 The installer is deliberately destructive and is intended to see only one target disk. Its v1 layout is 512 MiB EFI, 1 GiB `/boot`, and XFS `/` using the remainder of the disk. The temporary local administrator is `bbox` with password `bbox`; root is locked and the temporary password should be changed immediately after first boot.
 
