@@ -45,6 +45,30 @@ jobs:
         with:
           cosign-release: 'v3.1.2'
 
+      - name: Login to GHCR
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Skopeo and Cosign run as the GitHub runner user. Keep a
+          # Docker-compatible auth file for both of them.
+          mkdir -p "${HOME}/.docker"
+          printf '%s' "${GHCR_TOKEN}" | podman login \
+            --authfile "${HOME}/.docker/config.json" \
+            ghcr.io \
+            --username "${GITHUB_ACTOR}" \
+            --password-stdin
+          chmod 600 "${HOME}/.docker/config.json"
+
+          # bootc-image-builder-action performs its image pulls through
+          # rootful Podman, so authenticate that context as well.
+          printf '%s' "${GHCR_TOKEN}" | sudo podman login \
+            ghcr.io \
+            --username "${GITHUB_ACTOR}" \
+            --password-stdin
+
       - name: Resolve and verify Alma Black Box image
         id: source
         shell: bash
@@ -53,6 +77,7 @@ jobs:
 
           image="${IMAGE_REPOSITORY}:${CURRENT_TAG}"
           digest="$(skopeo inspect \
+            --authfile "${HOME}/.docker/config.json" \
             --override-arch amd64 \
             --format '{{.Digest}}' \
             "docker://${image}")"
