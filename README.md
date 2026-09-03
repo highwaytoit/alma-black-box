@@ -65,6 +65,14 @@ ghcr.io/highwaytoit/alma-black-box:10-20260902-abcdef1
 
 Images are signed with Cosign.
 
+## Installer ISO
+
+A separate osbuild workflow produces an unattended UEFI installation ISO from the signed `:10` bootc image. The workflow can be started manually and also rebuilds once per month.
+
+The installer is deliberately destructive and is intended to see only one target disk. Its v1 layout is 512 MiB EFI, 1 GiB `/boot`, and XFS `/` using the remainder of the disk. The temporary local administrator is `bbox` with password `bbox`; root is locked and the temporary password should be changed immediately after first boot.
+
+See [docs/INSTALLER.md](docs/INSTALLER.md) before booting the ISO.
+
 ## Local documentation
 
 The same operational documentation is baked into every image at:
@@ -86,12 +94,13 @@ See [docs/QUADLETS.md](docs/QUADLETS.md) for the supported copy and symlink depl
 Version 1 is deliberately narrow. It should prove:
 
 1. The custom Alma bootc image builds and is signed.
-2. The image boots in a VM.
-3. Native host tools are present.
-4. Tailscale and NetBird are installed but not enrolled.
-5. NUT and UPSide are present but not hardware-configured.
-6. The supplied Cockpit Quadlet can be activated.
-7. A later image update can be applied with bootc and rolled back.
+2. The installer ISO installs the image correctly in a UEFI VM with the intended partition layout.
+3. The installed image boots in a VM.
+4. Native host tools are present.
+5. Tailscale and NetBird are installed but not enrolled.
+6. NUT and UPSide are present but not hardware-configured.
+7. The supplied Cockpit Quadlet can be activated.
+8. A later image update can be applied with bootc and rolled back.
 
 See [docs/VM-TEST.md](docs/VM-TEST.md).
 
@@ -100,6 +109,7 @@ See [docs/VM-TEST.md](docs/VM-TEST.md).
 - AlmaLinux bootc: https://github.com/AlmaLinux/bootc-images
 - AlmaLinux Atomic Desktop: https://github.com/AlmaLinux/atomic-desktop
 - bootc: https://github.com/bootc-dev/bootc
+- osbuild: https://github.com/osbuild
 - Cockpit: https://github.com/cockpit-project/cockpit
 - Network UPS Tools: https://github.com/networkupstools/nut
 - UPSide: https://github.com/deviationist/cockpit-upside
