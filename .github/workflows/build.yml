@@ -209,3 +209,137 @@ jobs:
               echo '- Published: not applicable for this run'
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install release tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq skopeo
+
+      - name: Login to GitHub Container Registry
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          printf '%s' "${GHCR_TOKEN}" | skopeo login ghcr.io \
+            --username "${GITHUB_ACTOR}" \
+            --password-stdin
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          repository="alma-black-box"
+          short_sha="${GITHUB_SHA:0:7}"
+
+          # Find the exact immutable tag produced by this workflow rather than
+          # independently guessing the build date.
+          release_pattern="^${CURRENT_TAG}-[0-9]{8}-${short_sha}$"
+
+          release_tag="$(
+            skopeo list-tags "docker://${registry}/${repository}" \
+              | jq -r --arg pattern "${release_pattern}" \
+                  '.Tags[]? | select(test($pattern))' \
+              | sort \
+              | tail -n 1
+          )"
+
+          if [[ -z "${release_tag}" ]]; then
+            echo "Could not find release tag matching ${release_pattern}."
+            exit 1
+          fi
+
+          build_date="${release_tag#${CURRENT_TAG}-}"
+          build_date="${build_date%-${short_sha}}"
+          release_date="${build_date:0:4}-${build_date:4:2}-${build_date:6:2}"
+
+          current_image="${registry}/${repository}:${CURRENT_TAG}"
+          release_image="${registry}/${repository}:${release_tag}"
+
+          digest="$(
+            skopeo inspect \
+              --format '{{.Digest}}' \
+              "docker://${release_image}"
+          )"
+
+          if [[ ! "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid published digest: ${digest}"
+            exit 1
+          fi
+
+          release_title="Alma Black Box 10 - ${release_date}"
+
+          cat > /tmp/release-notes.md <<EOF_NOTES
+          ## Alma Black Box 10
+
+          Signed Alma Black Box image built from the verified AlmaLinux 10 bootc base image.
+
+          ### Image
+
+          Current image:
+
+          \`\`\`text
+          ${current_image}
+          \`\`\`
+
+          Release-specific image:
+
+          \`\`\`text
+          ${release_image}
+          \`\`\`
+
+          Published digest:
+
+          \`\`\`text
+          ${digest}
+          \`\`\`
+
+          ### Switching to the image
+
+          \`\`\`bash
+          sudo bootc switch ${current_image}
+          \`\`\`
+
+          The container image is signed with Cosign.
+          EOF_NOTES
+
+          if gh release view "${release_tag}" \
+              --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+
+            echo "Updating existing release ${release_tag}"
+
+            gh release edit "${release_tag}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${release_title}" \
+              --notes-file /tmp/release-notes.md \
+              --latest
+          else
+            echo "Creating release ${release_tag}"
+
+            gh release create "${release_tag}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${GITHUB_SHA}" \
+              --title "${release_title}" \
+              --notes-file /tmp/release-notes.md \
+              --latest
+          fi
