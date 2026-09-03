@@ -36,7 +36,7 @@ The image deliberately adds:
 - btop, micro, tmux, jq and rsync
 - tcpdump, bind-utils, traceroute, nmap-ncat and iperf3
 - SELinux administration tooling
-- Cockpit system/bridge, Podman and storage pages
+- Cockpit system/bridge, networking, SELinux, files, Podman and storage pages
 - Realtek USB Ethernet udev rules
 
 Tailscale, NetBird, NUT, and the Cockpit web service are not enrolled/configured or automatically activated by the generic image.
