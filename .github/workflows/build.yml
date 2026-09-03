@@ -126,9 +126,17 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          printf '%s' "${GHCR_TOKEN}" | sudo podman login ghcr.io \
+
+          # Keep one runner-owned Docker-compatible auth file. Rootful Podman
+          # receives it explicitly during push, while Cosign/go-containerregistry
+          # discovers the same file automatically at ~/.docker/config.json.
+          mkdir -p "${HOME}/.docker"
+          printf '%s' "${GHCR_TOKEN}" | podman login \
+            --authfile "${HOME}/.docker/config.json" \
+            ghcr.io \
             --username "${GITHUB_ACTOR}" \
             --password-stdin
+          chmod 600 "${HOME}/.docker/config.json"
 
       - name: Push image
         id: push
@@ -141,10 +149,13 @@ jobs:
           sudo podman tag alma-black-box:test "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
 
           sudo podman push \
+            --authfile "${HOME}/.docker/config.json" \
             --digestfile /tmp/digest \
             "${IMAGE_REPOSITORY}:${BUILD_TAG}"
 
-          sudo podman push "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+          sudo podman push \
+            --authfile "${HOME}/.docker/config.json" \
+            "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
 
           digest="$(cat /tmp/digest)"
           [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
@@ -159,6 +170,10 @@ jobs:
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           set -euo pipefail
+
+          # Cosign v3 warns that the legacy bundle format is deprecated. Keep
+          # it intentionally until containers/image and bootc can enforce the
+          # current Sigstore bundle format through our sigstoreSigned policy.
           cosign sign -y \
             --new-bundle-format=false \
             --use-signing-config=false \
@@ -173,6 +188,7 @@ jobs:
         run: |
           set -euo pipefail
           cosign verify \
+            --new-bundle-format=false \
             --key cosign.pub \
             "${IMAGE_REPOSITORY}@${DIGEST}"
 
