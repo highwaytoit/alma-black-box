@@ -1,5 +1,5 @@
 # Alma Black Box supplied Quadlet template.
-# Initial reference: Cockpit ws 366, September 2026.
+# Follows the upstream Cockpit ws latest tag.
 # Copy or symlink this file into /etc/containers/systemd/ to activate it.
 
 [Unit]
