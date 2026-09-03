@@ -39,7 +39,7 @@ sudo systemctl start cockpit.service
 
 The v1 Cockpit template follows Cockpit upstream's privileged `cockpit/ws` container model: privileged container, host PID namespace, and the host filesystem mounted at `/host`.
 
-Alma Black Box installs the native Cockpit bridge/system pages, Podman page, storage page, and UPSide extension. The `cockpit-ws` container supplies the browser-facing web service.
+Alma Black Box installs the native Cockpit bridge/system, networking, SELinux, files, Podman and storage pages, plus the UPSide extension. AlmaLinux packages the networking and SELinux components as part of `cockpit-system`; `cockpit-files`, `cockpit-podman`, and `cockpit-storaged` remain separate native packages. The `cockpit-ws` container supplies the browser-facing web service.
 
 The image permits SSH password authentication only from localhost so the Cockpit container can authenticate host users without enabling SSH password access from the network.
 
