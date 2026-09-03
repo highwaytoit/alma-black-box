@@ -85,6 +85,16 @@ done
 
 rpm -q selinux-policy-extra cockpit-system cockpit-podman cockpit-storaged
 
+# nut-client can be unpacked before the main nut package creates its account,
+# which produces RPM ownership warnings during the transaction. Require the
+# completed image to contain the intended NUT user and group.
+getent passwd nut >/dev/null
+getent group nut >/dev/null
+
+# EL10 SELinux policy RPM scriptlets may emit transaction warnings during bootc
+# composition. Require the completed policy store to remain readable.
+semodule -l >/dev/null
+
 test -f /usr/share/cockpit/upside/manifest.json
 test -f /usr/share/alma-black-box/quadlets/cockpit.container
 test -f /usr/share/doc/alma-black-box/README.md
@@ -97,5 +107,9 @@ systemctl enable NetworkManager.service 2>/dev/null || true
 systemctl enable firewalld.service 2>/dev/null || true
 systemctl enable sshd.service 2>/dev/null || true
 
+# bootc images must not carry build-time package-manager/runtime state in /var.
+# Alma's own atomic image derivatives clean /var after composition and let
+# systemd-tmpfiles recreate runtime state on the deployed machine.
 dnf clean all
-rm -rf /var/cache/dnf/*
+rm -rf /var
+install -d -m0755 /var

@@ -38,6 +38,7 @@ COPY --from=upside-builder /out/usr/share/cockpit/upside/ /usr/share/cockpit/ups
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/run \
     --mount=type=tmpfs,dst=/tmp \
     IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" \
     /ctx/build_files/build.sh
