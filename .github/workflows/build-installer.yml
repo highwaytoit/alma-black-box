@@ -14,6 +14,7 @@ env:
   IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/alma-black-box
   CURRENT_TAG: '10'
   BIB_IMAGE: quay.io/centos-bootc/bootc-image-builder:latest
+  INSTALLER_IMAGE: localhost/alma-black-box-installer:10
 
 jobs:
   build-installer:
@@ -52,8 +53,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Skopeo and Cosign run as the GitHub runner user. Keep a
-          # Docker-compatible auth file for both of them.
           mkdir -p "${HOME}/.docker"
           printf '%s' "${GHCR_TOKEN}" | podman login \
             --authfile "${HOME}/.docker/config.json" \
@@ -62,8 +61,6 @@ jobs:
             --password-stdin
           chmod 600 "${HOME}/.docker/config.json"
 
-          # bootc-image-builder-action performs its image pulls through
-          # rootful Podman, so authenticate that context as well.
           printf '%s' "${GHCR_TOKEN}" | sudo podman login \
             ghcr.io \
             --username "${GITHUB_ACTOR}" \
@@ -91,27 +88,68 @@ jobs:
             "${ref}" >/tmp/alma-black-box-verify.json
           jq -e 'length > 0' /tmp/alma-black-box-verify.json >/dev/null
 
-          echo "Verified installer source: ${ref}"
+          echo "Verified installer payload: ${ref}"
           echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
           echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build installer ISO
-        id: build
-        uses: osbuild/bootc-image-builder-action@420b8dc257bd7059f1511b9ae47ed29ce82d2209
-        with:
-          builder-image: ${{ env.BIB_IMAGE }}
-          config-file: ./installer/iso.toml
-          image: ${{ steps.source.outputs.ref }}
-          types: anaconda-iso
+      - name: Prepare rootful Podman storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -rf /var/lib/containers/storage
+          sudo mkdir -p /etc/containers
+          sudo tee /etc/containers/storage.conf >/dev/null <<'EOF'
+          [storage]
+          driver = "overlay"
+          runroot = "/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+          EOF
+
+      - name: Build dedicated installer container
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo podman build \
+            --pull=always \
+            --file installer/Containerfile \
+            --tag "${INSTALLER_IMAGE}" \
+            .
+
+      - name: Pull verified payload and image builder
+        shell: bash
+        env:
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: |
+          set -euo pipefail
+          sudo podman pull "${SOURCE_REF}"
+          sudo podman pull "${BIB_IMAGE}"
+
+      - name: Build bootc installer ISO
+        shell: bash
+        env:
+          SOURCE_REF: ${{ steps.source.outputs.ref }}
+        run: |
+          set -euo pipefail
+          mkdir -p output
+
+          sudo podman run --rm \
+            --privileged \
+            --security-opt label=type:unconfined_t \
+            --volume /var/lib/containers/storage:/var/lib/containers/storage \
+            --volume "${PWD}/output:/output" \
+            --volume "${PWD}/installer/iso.toml:/config.toml:ro" \
+            "${BIB_IMAGE}" build \
+            --output /output \
+            --type bootc-installer \
+            --installer-payload-ref "${SOURCE_REF}" \
+            "${INSTALLER_IMAGE}"
 
       - name: Prepare downloadable ISO
         shell: bash
-        env:
-          OUTPUT_DIR: ${{ steps.build.outputs.output-directory }}
         run: |
           set -euo pipefail
 
-          iso_path="$(find "${OUTPUT_DIR}" -type f -name '*.iso' -print -quit)"
+          iso_path="$(find ./output -type f -name '*.iso' -print -quit)"
           if [[ -z "${iso_path}" || ! -f "${iso_path}" ]]; then
             echo "Installer ISO was not produced."
             exit 1
@@ -144,7 +182,7 @@ jobs:
             echo
             echo "- Source image: ${IMAGE_REPOSITORY}:${CURRENT_TAG}"
             echo "- Verified digest: ${SOURCE_DIGEST}"
-            echo '- Installer type: unattended Anaconda ISO'
+            echo '- Installer type: bootc-installer with embedded Anaconda environment'
             echo '- Firmware target: UEFI'
             echo '- EFI system partition: 512 MiB'
             echo '- /boot: 1 GiB XFS'
