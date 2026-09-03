@@ -1,22 +1,37 @@
 # Alma Black Box installer ISO
 
-Alma Black Box uses the published bootc image as the operating-system source of truth. The installer ISO is disposable bootstrap media generated with osbuild's bootc image builder.
+Alma Black Box uses the published bootc image as the operating-system source of truth. The installer ISO is disposable bootstrap media generated separately from the production image.
 
-The ISO uses the `bootc-installer` image type. A dedicated AlmaLinux bootc installer container supplies Anaconda and Lorax only for ISO construction; those installer packages are not added to the production Alma Black Box image. The verified Alma Black Box image is supplied separately as the installer payload.
+The recommended builder is the **Alma Black Box ISO Builder** template:
+
+https://github.com/highwaytoit/alma-black-box-iso
+
+The ISO uses the `bootc-installer` image type. A dedicated AlmaLinux bootc installer container supplies Anaconda and Lorax only for ISO construction; those installer packages are not added to the production Alma Black Box image. The selected bootc image is supplied separately as the installer payload.
 
 ## Build policy
 
-The installer workflow is separate from the normal operating-system image build.
+The ISO builder is intentionally manual-only.
 
-It can be started manually from GitHub Actions and is also scheduled once per month. The workflow resolves `ghcr.io/highwaytoit/alma-black-box:10` to its current amd64 digest, verifies that exact digest with the repository Cosign public key, and uses that verified reference as the payload embedded into the installer ISO.
+Use the template repository, click **Use this template**, create a repository in your own GitHub account, then run **Build Alma Black Box installer ISO** from GitHub Actions whenever you need fresh installation media.
 
-The dedicated installer environment is built from `installer/Containerfile`. The partitioning and initial account remain defined by the Kickstart content in `installer/iso.toml`.
+The default image is:
 
-This design avoids the legacy `anaconda-iso` path that builds the installer environment by downloading its RPM payload during the ISO build.
+```text
+ghcr.io/highwaytoit/alma-black-box:10
+```
+
+Every run resolves that moving tag to its current amd64 digest before building, so a template copy created months earlier still installs the image currently published behind `:10`.
+
+The default image is verified with the supplied Cosign public key. The template also allows an advanced user to select another public bootc image and, when intentionally required, disable the default signature check.
+
+Generated GitHub Actions artifacts are retained for only one day. The template is an ISO builder, not a long-term ISO archive.
 
 ## Destructive installation model
 
 The installer is unattended and destructive. Its Kickstart contains `clearpart --all`.
+
+> [!CAUTION]
+> **Disconnect every disk except the intended installation disk before booting this ISO on physical hardware.**
 
 Use it only when the machine exposes one intended installation disk:
 
@@ -27,9 +42,9 @@ Do not boot this installer with disks attached whose contents must be preserved.
 
 ## Firmware and partition layout
 
-The v1 installer targets UEFI systems.
+The default installer targets x86_64 UEFI systems.
 
-The target disk layout is deliberately simple:
+The target disk layout is:
 
 ```text
 GPT
@@ -38,13 +53,19 @@ GPT
 └─ remainder XFS                   /
 ```
 
-A BIOS-GPT helper partition is not created because this installer targets UEFI. If legacy BIOS support is ever required, it should be added and tested as a separate installer change.
+The root partition has an 8 GiB minimum and grows to consume the remaining disk space. No swap partition is created.
 
-No disk swap partition is created.
+The partitioning, hostname, timezone, networking, and initial account are defined in the template repository at:
+
+```text
+installer/iso.toml
+```
+
+Edit that file in your template-derived repository before starting the workflow if a different layout is required.
 
 ## Initial account
 
-The installer locks direct root login and creates one temporary administrator:
+The default installer locks direct root login and creates one temporary administrator:
 
 ```text
 username: bbox
@@ -52,32 +73,38 @@ password: bbox
 groups:   wheel
 ```
 
-This credential is intentionally simple for initial VM and console bootstrap. Change it immediately after the first boot:
+The repository stores a one-way hash rather than a real private password. The public `bbox` credential is intentionally only a first-login bootstrap credential.
+
+Immediately after first boot, log in as `bbox` and run:
 
 ```bash
-passwd bbox
+passwd
 ```
 
-Do not activate Cockpit or expose administrative services before changing the temporary password on a real machine.
+Enter `bbox` as the current password and then set your new private password.
 
-## Building the ISO
+Do not place a real personal password in a public template repository. Do not expose administrative services before changing the temporary password on a real machine.
 
-Open the repository's GitHub Actions page and run **Build Alma Black Box installer ISO**.
+## Building and downloading the ISO
 
-A successful run uploads an artifact named:
+In your repository created from the ISO Builder template:
 
-```text
-alma-black-box-10-installer
-```
+1. Open **Actions**.
+2. Select **Build Alma Black Box installer ISO**.
+3. Click **Run workflow**.
+4. Leave the default image unchanged unless you deliberately want a different bootc payload.
+5. Wait for the workflow to finish.
+6. Open the completed run and use the **Download installer artifact** link in the Summary.
+7. Extract `alma-black-box-installer`.
 
 The artifact contains:
 
 ```text
-alma-black-box-10-installer.iso
+alma-black-box-installer.iso
 SHA256SUMS
 ```
 
-The ISO can be attached directly to a VM. After VM validation it can be written to a USB stick or booted through a suitable USB multiboot tool for bare-metal installation.
+The artifact expires after one day. Run the workflow again if fresh media is needed later.
 
 ## VM-first acceptance test
 
@@ -95,18 +122,18 @@ sudo systemctl --failed --no-pager
 
 Confirm the partition sizes are approximately 512 MiB for the EFI System Partition, 1 GiB for `/boot`, and the remaining disk space for `/`.
 
-Then continue with `docs/VM-TEST.md` to validate the native tools, Cockpit Quadlet, reboot behavior, a later `bootc upgrade`, and rollback.
+Then continue with `docs/VM-TEST.md` to validate native tools, Cockpit Quadlet behavior, reboot, bootc upgrade, and rollback.
 
 ## Bare-metal installation
 
-Only after the VM installer and update/rollback flow are validated:
+Only after VM validation:
 
 1. Shut down the Lenovo.
 2. Disconnect the 240 GB data SSD.
 3. Leave only the intended 128 GB OS SSD attached.
 4. Boot the validated installer ISO in UEFI mode.
 5. Let the unattended installation complete and reboot.
-6. Log in locally as `bbox` / `bbox` and immediately change the password.
+6. Log in locally as `bbox` / `bbox` and immediately change the password with `passwd`.
 7. Verify the disk layout and `bootc status`.
 8. Shut down the machine.
 9. Reconnect the 240 GB SSD.
@@ -120,4 +147,4 @@ The ISO is not the update mechanism. Once installed, the machine follows the nor
 ghcr.io/highwaytoit/alma-black-box:10
 ```
 
-Future operating-system changes arrive through bootc. The installer only needs occasional rebuilding so fresh bootstrap media is available.
+Future operating-system changes arrive through bootc. Build another ISO only when fresh bootstrap media is needed.
