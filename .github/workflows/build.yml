@@ -96,16 +96,25 @@ jobs:
             alma-black-box:test \
             -c '
               set -euo pipefail
+
+              check_file() {
+                if [[ ! -f "$1" ]]; then
+                  echo "ERROR: expected file missing: $1" >&2
+                  exit 1
+                fi
+              }
+
               bootc container lint --fatal-warnings
-              rpm -q nut nut-client selinux-policy-extra cockpit-system cockpit-files cockpit-podman cockpit-storaged
+              rpm -q nut nut-client selinux-policy-extra smartmontools-selinux cockpit-system cockpit-files cockpit-podman cockpit-storaged
               command -v tailscale
               command -v netbird
               command -v fwupdmgr
               command -v smartctl
               command -v micro
-              test -f /usr/share/cockpit/upside/manifest.json
-              test -f /usr/share/alma-black-box/quadlets/cockpit.container
-              test -f /usr/share/doc/alma-black-box/README.md
+              semodule -l >/dev/null
+              check_file /usr/share/cockpit/upside/manifest.json
+              check_file /usr/share/alma-black-box/quadlets/cockpit.container
+              check_file /usr/share/alma-black-box/doc/README.md
               jq empty /etc/containers/policy.json
             '
 
