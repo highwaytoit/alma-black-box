@@ -74,7 +74,7 @@ sed -i "s|@@COCKPIT_WS_IMAGE@@|${COCKPIT_WS_IMAGE}|g" \
 
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
-    bootc podman nmcli firewall-cmd sshd \
+    bootc podman nmcli nmtui firewall-cmd sshd \
     upsc nut-scanner \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
@@ -84,10 +84,17 @@ for cmd in \
 done
 
 rpm -q \
+    NetworkManager-tui \
+    NetworkManager-wifi \
     fwupd \
     fwupd-efi \
     amd-ucode-firmware \
     amd-gpu-firmware \
+    microcode_ctl \
+    intel-gpu-firmware \
+    iwlegacy-firmware \
+    iwlwifi-dvm-firmware \
+    iwlwifi-mvm-firmware \
     realtek-firmware \
     qemu-guest-agent \
     zram-generator \
