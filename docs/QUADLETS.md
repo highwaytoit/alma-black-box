@@ -1,6 +1,6 @@
 # Supplied Quadlets
 
-Alma Black Box keeps inactive, project-tested Quadlet templates under:
+Alma Black Box keeps inactive Quadlet templates under:
 
 ```text
 /usr/share/alma-black-box/quadlets/
@@ -8,9 +8,9 @@ Alma Black Box keeps inactive, project-tested Quadlet templates under:
 
 They are deliberately outside Podman's active Quadlet search directories.
 
-## Recommended: copy and customize
+## Recommended deployment
 
-Copying is the recommended deployment model.
+Copy the desired template into `/etc/containers/systemd/`, then customize the local copy for the deployment:
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
@@ -21,13 +21,11 @@ sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
 ```
 
-The copied file belongs to the local administrator and can be customized for that machine. Future Alma Black Box image updates will update the supplied template under `/usr/share/alma-black-box/quadlets/` but will not overwrite the active local copy under `/etc/containers/systemd/`.
+The copied file belongs to the local administrator. Future Alma Black Box image updates can refresh the supplied template under `/usr/share/alma-black-box/quadlets/` without overwriting the active local copy.
 
-This separation is intentional. Supplied templates are project defaults and documentation; active Quadlets are local configuration.
+## Symlink deployment
 
-## Optional but not recommended: symlink the supplied template
-
-A supplied template can be symlinked directly into `/etc/containers/systemd/`, but this deployment model is not recommended.
+A supplied template can instead be symlinked into `/etc/containers/systemd/`:
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
@@ -37,22 +35,18 @@ sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
 ```
 
-With a symlink, a future bootc image update can change the supplied template and therefore change the active service definition. Use this only when that behavior is explicitly desired and the administrator is prepared to review template changes before or after image updates.
+With a symlink, a future bootc image update can change the supplied template and therefore change the active service definition. Use this model only when that behavior is intentional.
 
-## Cockpit v1 notes
+## Cockpit web service
 
-The v1 Cockpit template follows Cockpit upstream's privileged `cockpit/ws` container model: privileged container, host PID namespace, and the host filesystem mounted at `/host`.
+The supplied Cockpit template follows the upstream privileged `cockpit/ws` container model, including host PID access and the host filesystem mounted at `/host`.
 
-Alma Black Box installs the native Cockpit bridge/system, networking, SELinux, files, Podman and storage pages, plus the UPSide extension. AlmaLinux packages the networking and SELinux components as part of `cockpit-system`; `cockpit-files`, `cockpit-podman`, and `cockpit-storaged` remain separate native packages. The `cockpit-ws` container supplies the browser-facing web service.
+Alma Black Box installs the native Cockpit bridge/system components and the UPSide extension. The `cockpit-ws` container supplies the browser-facing web service.
 
 The image permits SSH password authentication only from localhost so the Cockpit container can authenticate host users without enabling SSH password access from the network.
 
-Before testing browser login, set a password for the intended host account if it does not already have one.
+Before browser login, ensure the intended host account has suitable credentials. Open TCP port 9090 only on networks where Cockpit should be reachable, and review the active firewalld zone before changing firewall rules.
 
-Open TCP port 9090 only on the networks where you actually want Cockpit reachable. For example, review your active firewalld zone before adding the port.
+## Template policy
 
-## Template acceptance policy
-
-Future Quadlets should be added here only after they have been deployed and tested on an Alma Black Box test VM or bare-metal test node. Documentation should record the initial test date/version. A later upstream application update can still break an old template; report that as an issue and revalidate the template.
-
-See `QUADLET-STATUS.md` for the planned and validated template inventory.
+Supplied templates are intentionally generic. Storage paths, secrets, ports, network exposure, SELinux requirements, capabilities, and application-specific settings should be reviewed and adapted by the administrator before activation.
