@@ -84,6 +84,8 @@ for cmd in \
 done
 
 rpm -q \
+    fwupd-efi \
+    qemu-guest-agent \
     zram-generator \
     selinux-policy-extra \
     cockpit-system \
