@@ -84,7 +84,11 @@ for cmd in \
 done
 
 rpm -q \
+    fwupd \
     fwupd-efi \
+    amd-ucode-firmware \
+    amd-gpu-firmware \
+    realtek-firmware \
     qemu-guest-agent \
     zram-generator \
     selinux-policy-extra \
