@@ -84,11 +84,15 @@ for cmd in \
 done
 
 rpm -q \
+    zram-generator \
     selinux-policy-extra \
     cockpit-system \
     cockpit-files \
     cockpit-podman \
     cockpit-storaged
+
+test -f /etc/systemd/zram-generator.conf
+grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
 
 # nut-client can be unpacked before the main nut package creates its account,
 # which produces RPM ownership warnings during the transaction. Require the
