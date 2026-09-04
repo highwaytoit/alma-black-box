@@ -4,15 +4,13 @@ Keep the first VM after validation. It becomes the long-lived test target for fu
 
 ## 0. Installer and disk-layout validation
 
-Build the ISO using the `Build Alma Black Box installer ISO` workflow described in `docs/INSTALLER.md`.
+Build the ISO using the separate Alma Black Box ISO Builder template:
+
+https://github.com/highwaytoit/alma-black-box-iso
 
 Create a UEFI VM with one blank 128 GB virtual disk and boot the generated ISO. The install is unattended and destructive to every disk visible to Anaconda, so do not attach any other test disks containing data.
 
-After the first boot, log in as the temporary `bbox` / `bbox` administrator and change its password:
-
-```bash
-passwd bbox
-```
+After the first boot, log in as the temporary `bbox` administrator using the access method configured in the ISO Builder and change the password if password login was enabled.
 
 Then verify the installed layout before testing anything else:
 
