@@ -8,6 +8,7 @@ fi
 
 POLICY="/etc/containers/policy.json"
 KEY="/usr/lib/pki/containers/highwaytoit.pub"
+SIGSTORE_REGISTRIES="/etc/containers/registries.d/ghcr.io-highwaytoit.yaml"
 
 if [[ ! -f /ctx/cosign.pub ]]; then
     echo "ERROR: /ctx/cosign.pub is missing."
@@ -53,4 +54,18 @@ for image_repo in "$@"; do
 done
 
 install -m0644 "${working_policy}" "${POLICY}"
+
+# containers/image requires explicit Sigstore attachment discovery for registries
+# whose images are enforced with a sigstoreSigned policy. Keep this scoped to the
+# exact image repositories trusted above rather than enabling it for all of GHCR.
+install -d -m0755 "$(dirname "${SIGSTORE_REGISTRIES}")"
+{
+    echo "docker:"
+    for image_repo in "$@"; do
+        printf '    %s:\n' "${image_repo}"
+        echo "        use-sigstore-attachments: true"
+    done
+} > "${SIGSTORE_REGISTRIES}"
+chmod 0644 "${SIGSTORE_REGISTRIES}"
+
 echo "Container signature trust installed successfully."
