@@ -64,8 +64,8 @@ systemctl disable cockpit.socket cockpit.service 2>/dev/null || true
 /ctx/build_files/install-image-trust.sh "${IMAGE_REPOSITORY}"
 
 # Ship local operator documentation and inactive Quadlet templates.
-install -d -m0755 /usr/share/doc/alma-black-box
-cp -avf /ctx/docs/. /usr/share/doc/alma-black-box/
+install -d -m0755 /usr/share/alma-black-box/doc
+cp -avf /ctx/docs/. /usr/share/alma-black-box/doc/
 
 install -d -m0755 /usr/share/alma-black-box/quadlets
 cp -avf /ctx/quadlets/. /usr/share/alma-black-box/quadlets/
@@ -102,7 +102,7 @@ semodule -l >/dev/null
 
 test -f /usr/share/cockpit/upside/manifest.json
 test -f /usr/share/alma-black-box/quadlets/cockpit.container
-test -f /usr/share/doc/alma-black-box/README.md
+test -f /usr/share/alma-black-box/doc/README.md
 ! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/alma-black-box/quadlets/cockpit.container
 
 # Services which define the host itself remain available. Remote-access clients,
