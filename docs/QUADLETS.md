@@ -8,9 +8,9 @@ Alma Black Box keeps inactive, project-tested Quadlet templates under:
 
 They are deliberately outside Podman's active Quadlet search directories.
 
-## Option A: copy and customize
+## Recommended: copy and customize
 
-Use this when the deployment needs local changes.
+Copying is the recommended deployment model.
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
@@ -21,11 +21,13 @@ sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
 ```
 
-The copied file belongs to the local administrator. Future OS updates will update the supplied template but will not overwrite the local copy.
+The copied file belongs to the local administrator and can be customized for that machine. Future Alma Black Box image updates will update the supplied template under `/usr/share/alma-black-box/quadlets/` but will not overwrite the active local copy under `/etc/containers/systemd/`.
 
-## Option B: symlink the supplied template
+This separation is intentional. Supplied templates are project defaults and documentation; active Quadlets are local configuration.
 
-Use this when the project default is exactly what you want and you intentionally want future image updates to change the active definition.
+## Optional but not recommended: symlink the supplied template
+
+A supplied template can be symlinked directly into `/etc/containers/systemd/`, but this deployment model is not recommended.
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
@@ -34,6 +36,8 @@ sudo ln -s /usr/share/alma-black-box/quadlets/cockpit.container \
 sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
 ```
+
+With a symlink, a future bootc image update can change the supplied template and therefore change the active service definition. Use this only when that behavior is explicitly desired and the administrator is prepared to review template changes before or after image updates.
 
 ## Cockpit v1 notes
 
@@ -50,3 +54,5 @@ Open TCP port 9090 only on the networks where you actually want Cockpit reachabl
 ## Template acceptance policy
 
 Future Quadlets should be added here only after they have been deployed and tested on an Alma Black Box test VM or bare-metal test node. Documentation should record the initial test date/version. A later upstream application update can still break an old template; report that as an issue and revalidate the template.
+
+See `QUADLET-STATUS.md` for the planned and validated template inventory.
