@@ -41,6 +41,8 @@ The image deliberately adds:
 
 Tailscale, NetBird, NUT, and the Cockpit web service are not enrolled/configured or automatically activated by the generic image.
 
+ZRAM is enabled with `zram-generator` using its built-in sizing policy: half of system RAM, capped at 4 GiB.
+
 Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as a Quadlet. This allows UPSide and the host-specific Cockpit pages to work without running the native Cockpit web server.
 
 ## What is not included
