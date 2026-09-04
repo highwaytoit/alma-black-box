@@ -115,7 +115,11 @@ jobs:
               check_file /usr/share/cockpit/upside/manifest.json
               check_file /usr/share/alma-black-box/quadlets/cockpit.container
               check_file /usr/share/alma-black-box/doc/README.md
+              check_file /usr/lib/pki/containers/highwaytoit.pub
+              check_file /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
               jq empty /etc/containers/policy.json
+              grep -Fq "ghcr.io/highwaytoit/alma-black-box:" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
+              grep -Fq "use-sigstore-attachments: true" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
             '
 
       - name: Prepare release tags
