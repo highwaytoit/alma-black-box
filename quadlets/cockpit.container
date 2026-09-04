@@ -1,6 +1,7 @@
 # Alma Black Box supplied Quadlet template.
 # Follows the upstream Cockpit ws latest tag.
-# Copy or symlink this file into /etc/containers/systemd/ to activate it.
+# Recommended: copy this file into /etc/containers/systemd/ and customize the local copy.
+# Symlinking the supplied template is possible but not recommended; see docs/QUADLETS.md.
 
 [Unit]
 Description=Cockpit web console for Alma Black Box
