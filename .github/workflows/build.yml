@@ -1,26 +1,20 @@
 ---
-name: Build signed Alma Black Box image
+name: Build Alma Black Box minimal-plus testing image
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**/README.md'
-      - 'docs/**'
   workflow_dispatch:
-  schedule:
-    - cron: '20 4 * * 0'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  group: alma-black-box-minimal-plus-testing
   cancel-in-progress: true
 
 env:
-  ALMA_BOOTC_IMAGE: quay.io/almalinuxorg/almalinux-bootc:10
   IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/alma-black-box
-  CURRENT_TAG: '10'
+  CURRENT_REFERENCE_TAG: '10'
+  TEST_TAG: '10-minimal-plus-testing'
+  ALMA_REPOS_IMAGE: quay.io/almalinuxorg/10-base:10
+  BOOTC_IMAGECTL_IMAGE: quay.io/centos-bootc/centos-bootc:stream10
+  ALMA_BUILDER_IMAGE: quay.io/almalinuxorg/10-kitten-base:10-kitten
 
 jobs:
   build:
@@ -31,6 +25,15 @@ jobs:
       id-token: write
 
     steps:
+      - name: Require testing branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/testing" ]]; then
+            echo "This workflow is intentionally restricted to the testing branch."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -46,44 +49,52 @@ jobs:
         with:
           cosign-release: 'v3.1.2'
 
-      - name: Resolve and verify AlmaLinux bootc base
-        id: upstream
+      - name: Resolve minimal-plus build inputs
+        id: inputs
         shell: bash
         run: |
           set -euo pipefail
 
-          # Follow AlmaLinux Atomic CI's upstream trust model: verify the
-          # published bootc reference with Alma's public key before using it.
-          cosign verify --key almalinux-bootc.pub "${ALMA_BOOTC_IMAGE}" >/tmp/alma-verify.json
-          jq -e 'length > 0' /tmp/alma-verify.json >/dev/null
+          resolve_ref() {
+            local image="$1"
+            local digest
+            digest="$(skopeo inspect \
+              --override-arch amd64 \
+              --format '{{.Digest}}' \
+              "docker://${image}")"
+            [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
+            printf '%s@%s' "${image%:*}" "${digest}"
+          }
 
-          # Build from a resolved amd64 digest so this workflow never changes
-          # base image midway through the actual container build.
-          digest="$(skopeo inspect \
-            --override-arch amd64 \
-            --format '{{.Digest}}' \
-            "docker://${ALMA_BOOTC_IMAGE}")"
+          repos_ref="$(resolve_ref "${ALMA_REPOS_IMAGE}")"
+          imagectl_ref="$(resolve_ref "${BOOTC_IMAGECTL_IMAGE}")"
+          builder_ref="$(resolve_ref "${ALMA_BUILDER_IMAGE}")"
 
-          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
-          ref="${ALMA_BOOTC_IMAGE}@${digest}"
+          echo "Alma repository image: ${repos_ref}"
+          echo "bootc imagectl image: ${imagectl_ref}"
+          echo "Alma builder image: ${builder_ref}"
 
-          echo "Verified tag and resolved upstream: ${ref}"
-          echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
-          echo "ref=${ref}" >> "${GITHUB_OUTPUT}"
+          echo "repos_ref=${repos_ref}" >> "${GITHUB_OUTPUT}"
+          echo "imagectl_ref=${imagectl_ref}" >> "${GITHUB_OUTPUT}"
+          echo "builder_ref=${builder_ref}" >> "${GITHUB_OUTPUT}"
 
-      - name: Build image
+      - name: Build minimal-plus image
         shell: bash
         env:
-          UPSTREAM_REF: ${{ steps.upstream.outputs.ref }}
+          ALMA_REPOS_REF: ${{ steps.inputs.outputs.repos_ref }}
+          BOOTC_IMAGECTL_REF: ${{ steps.inputs.outputs.imagectl_ref }}
+          ALMA_BUILDER_REF: ${{ steps.inputs.outputs.builder_ref }}
         run: |
           set -euo pipefail
           sudo podman build \
             --pull=always \
-            --build-arg "ALMA_BOOTC_IMAGE=${UPSTREAM_REF}" \
+            --build-arg "ALMA_REPOS_IMAGE=${ALMA_REPOS_REF}" \
+            --build-arg "BOOTC_IMAGECTL_IMAGE=${BOOTC_IMAGECTL_REF}" \
+            --build-arg "ALMA_BUILDER_IMAGE=${ALMA_BUILDER_REF}" \
             --build-arg "IMAGE_REPOSITORY=${IMAGE_REPOSITORY}" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --tag alma-black-box:test \
+            --tag alma-black-box:minimal-plus-test \
             --file Containerfile \
             .
 
@@ -93,7 +104,7 @@ jobs:
           set -euo pipefail
           sudo podman run --rm \
             --entrypoint /bin/bash \
-            alma-black-box:test \
+            alma-black-box:minimal-plus-test \
             -c '
               set -euo pipefail
 
@@ -105,7 +116,17 @@ jobs:
               }
 
               bootc container lint --fatal-warnings
-              rpm -q nut nut-client selinux-policy-extra smartmontools-selinux cockpit-system cockpit-files cockpit-podman cockpit-storaged
+              rpm -q \
+                fwupd-efi \
+                qemu-guest-agent \
+                nut \
+                nut-client \
+                selinux-policy-extra \
+                smartmontools-selinux \
+                cockpit-system \
+                cockpit-files \
+                cockpit-podman \
+                cockpit-storaged
               command -v tailscale
               command -v netbird
               command -v fwupdmgr
@@ -117,32 +138,79 @@ jobs:
               check_file /usr/share/alma-black-box/doc/README.md
               check_file /usr/lib/pki/containers/highwaytoit.pub
               check_file /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
+              check_file /etc/systemd/zram-generator.conf
               jq empty /etc/containers/policy.json
               grep -Fq "ghcr.io/highwaytoit/alma-black-box:" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
               grep -Fq "use-sigstore-attachments: true" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
             '
 
-      - name: Prepare release tags
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      - name: Compare with current standard-based image
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          standard_ref="${IMAGE_REPOSITORY}:${CURRENT_REFERENCE_TAG}"
+          sudo podman pull "${standard_ref}"
+
+          sudo podman run --rm --entrypoint rpm \
+            alma-black-box:minimal-plus-test \
+            -qa --qf '%{NAME}\n' | sort -u > /tmp/minimal-plus-packages.txt
+
+          sudo podman run --rm --entrypoint rpm \
+            "${standard_ref}" \
+            -qa --qf '%{NAME}\n' | sort -u > /tmp/standard-packages.txt
+
+          candidate_count="$(wc -l < /tmp/minimal-plus-packages.txt)"
+          standard_count="$(wc -l < /tmp/standard-packages.txt)"
+
+          candidate_size="$(sudo podman image inspect alma-black-box:minimal-plus-test --format '{{.Size}}')"
+          standard_size="$(sudo podman image inspect "${standard_ref}" --format '{{.Size}}')"
+
+          candidate_rpm_bytes="$(sudo podman run --rm --entrypoint /bin/bash \
+            alma-black-box:minimal-plus-test \
+            -c "rpm -qa --qf '%{SIZE}\\n' | awk '{s+=\$1} END {print s+0}'")"
+          standard_rpm_bytes="$(sudo podman run --rm --entrypoint /bin/bash \
+            "${standard_ref}" \
+            -c "rpm -qa --qf '%{SIZE}\\n' | awk '{s+=\$1} END {print s+0}'")"
+
+          echo "Minimal-plus RPM count: ${candidate_count}"
+          echo "Standard-based RPM count: ${standard_count}"
+          echo "Minimal-plus local image size: ${candidate_size} bytes"
+          echo "Standard-based local image size: ${standard_size} bytes"
+          echo "Minimal-plus RPM payload: ${candidate_rpm_bytes} bytes"
+          echo "Standard-based RPM payload: ${standard_rpm_bytes} bytes"
+
+          echo
+          echo '=== Packages present only in current standard-based image ==='
+          comm -23 /tmp/standard-packages.txt /tmp/minimal-plus-packages.txt || true
+
+          echo
+          echo '=== Packages present only in minimal-plus candidate ==='
+          comm -13 /tmp/standard-packages.txt /tmp/minimal-plus-packages.txt || true
+
+          echo "candidate_count=${candidate_count}" >> "${GITHUB_OUTPUT}"
+          echo "standard_count=${standard_count}" >> "${GITHUB_OUTPUT}"
+          echo "candidate_size=${candidate_size}" >> "${GITHUB_OUTPUT}"
+          echo "standard_size=${standard_size}" >> "${GITHUB_OUTPUT}"
+          echo "candidate_rpm_bytes=${candidate_rpm_bytes}" >> "${GITHUB_OUTPUT}"
+          echo "standard_rpm_bytes=${standard_rpm_bytes}" >> "${GITHUB_OUTPUT}"
+
+      - name: Prepare testing tags
         shell: bash
         run: |
           set -euo pipefail
           short_sha="${GITHUB_SHA:0:7}"
-          build_tag="10-$(date -u +%Y%m%d)-${short_sha}"
+          build_tag="${TEST_TAG}-$(date -u +%Y%m%d)-${short_sha}"
           echo "BUILD_TAG=${build_tag}" >> "${GITHUB_ENV}"
-          echo "Publishing ${IMAGE_REPOSITORY}:${CURRENT_TAG} and ${IMAGE_REPOSITORY}:${build_tag}"
+          echo "Publishing ${IMAGE_REPOSITORY}:${TEST_TAG} and ${IMAGE_REPOSITORY}:${build_tag}"
 
       - name: Login to GHCR
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         shell: bash
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
-          # Keep one runner-owned Docker-compatible auth file. Rootful Podman
-          # receives it explicitly during push, while Cosign/go-containerregistry
-          # discovers the same file automatically at ~/.docker/config.json.
           mkdir -p "${HOME}/.docker"
           printf '%s' "${GHCR_TOKEN}" | podman login \
             --authfile "${HOME}/.docker/config.json" \
@@ -151,15 +219,14 @@ jobs:
             --password-stdin
           chmod 600 "${HOME}/.docker/config.json"
 
-      - name: Push image
+      - name: Push testing image
         id: push
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         shell: bash
         run: |
           set -euo pipefail
 
-          sudo podman tag alma-black-box:test "${IMAGE_REPOSITORY}:${BUILD_TAG}"
-          sudo podman tag alma-black-box:test "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+          sudo podman tag alma-black-box:minimal-plus-test "${IMAGE_REPOSITORY}:${BUILD_TAG}"
+          sudo podman tag alma-black-box:minimal-plus-test "${IMAGE_REPOSITORY}:${TEST_TAG}"
 
           sudo podman push \
             --authfile "${HOME}/.docker/config.json" \
@@ -168,33 +235,27 @@ jobs:
 
           sudo podman push \
             --authfile "${HOME}/.docker/config.json" \
-            "${IMAGE_REPOSITORY}:${CURRENT_TAG}"
+            "${IMAGE_REPOSITORY}:${TEST_TAG}"
 
           digest="$(cat /tmp/digest)"
           [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "digest=${digest}" >> "${GITHUB_OUTPUT}"
-          echo "Published digest: ${digest}"
+          echo "Published testing digest: ${digest}"
 
-      - name: Sign image digest
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      - name: Sign testing image digest
         shell: bash
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           set -euo pipefail
-
-          # Cosign v3 warns that the legacy bundle format is deprecated. Keep
-          # it intentionally until containers/image and bootc can enforce the
-          # current Sigstore bundle format through our sigstoreSigned policy.
           cosign sign -y \
             --new-bundle-format=false \
             --use-signing-config=false \
             --key env://COSIGN_PRIVATE_KEY \
             "${IMAGE_REPOSITORY}@${DIGEST}"
 
-      - name: Verify published signature
-        if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      - name: Verify testing signature
         shell: bash
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
@@ -209,150 +270,30 @@ jobs:
         if: always()
         shell: bash
         env:
-          UPSTREAM_DIGEST: ${{ steps.upstream.outputs.digest }}
+          REPOS_REF: ${{ steps.inputs.outputs.repos_ref }}
+          IMAGECTL_REF: ${{ steps.inputs.outputs.imagectl_ref }}
+          BUILDER_REF: ${{ steps.inputs.outputs.builder_ref }}
           PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
+          CANDIDATE_COUNT: ${{ steps.compare.outputs.candidate_count }}
+          STANDARD_COUNT: ${{ steps.compare.outputs.standard_count }}
+          CANDIDATE_SIZE: ${{ steps.compare.outputs.candidate_size }}
+          STANDARD_SIZE: ${{ steps.compare.outputs.standard_size }}
+          CANDIDATE_RPM_BYTES: ${{ steps.compare.outputs.candidate_rpm_bytes }}
+          STANDARD_RPM_BYTES: ${{ steps.compare.outputs.standard_rpm_bytes }}
         run: |
           {
-            echo '## Alma Black Box'
+            echo '## Alma Black Box minimal-plus testing build'
             echo
-            echo "- Upstream: ${ALMA_BOOTC_IMAGE}@${UPSTREAM_DIGEST}"
-            if [[ -n "${PUBLISHED_DIGEST:-}" ]]; then
-              echo "- Published: ${IMAGE_REPOSITORY}@${PUBLISHED_DIGEST}"
-            else
-              echo '- Published: not applicable for this run'
-            fi
+            echo "- Branch: ${GITHUB_REF_NAME}"
+            echo "- Test image: ${IMAGE_REPOSITORY}:${TEST_TAG}"
+            echo "- Published digest: ${PUBLISHED_DIGEST:-not published}"
+            echo "- Alma repository source: ${REPOS_REF:-unknown}"
+            echo "- bootc imagectl source: ${IMAGECTL_REF:-unknown}"
+            echo "- Alma builder source: ${BUILDER_REF:-unknown}"
+            echo
+            echo '### Comparison with current :10 image'
+            echo
+            echo "- RPM count: minimal-plus ${CANDIDATE_COUNT:-n/a}; standard-based ${STANDARD_COUNT:-n/a}"
+            echo "- Local image size: minimal-plus ${CANDIDATE_SIZE:-n/a} bytes; standard-based ${STANDARD_SIZE:-n/a} bytes"
+            echo "- Installed RPM payload: minimal-plus ${CANDIDATE_RPM_BYTES:-n/a} bytes; standard-based ${STANDARD_RPM_BYTES:-n/a} bytes"
           } >> "${GITHUB_STEP_SUMMARY}"
-
-  release:
-    name: Publish GitHub release
-    needs: build
-    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    runs-on: ubuntu-24.04
-
-    permissions:
-      contents: write
-      packages: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Install release tools
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq skopeo
-
-      - name: Login to GitHub Container Registry
-        shell: bash
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-
-          printf '%s' "${GHCR_TOKEN}" | skopeo login ghcr.io \
-            --username "${GITHUB_ACTOR}" \
-            --password-stdin
-
-      - name: Publish GitHub release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
-          repository="alma-black-box"
-          short_sha="${GITHUB_SHA:0:7}"
-
-          # Find the exact immutable tag produced by this workflow rather than
-          # independently guessing the build date.
-          release_pattern="^${CURRENT_TAG}-[0-9]{8}-${short_sha}$"
-
-          release_tag="$(
-            skopeo list-tags "docker://${registry}/${repository}" \
-              | jq -r --arg pattern "${release_pattern}" \
-                  '.Tags[]? | select(test($pattern))' \
-              | sort \
-              | tail -n 1
-          )"
-
-          if [[ -z "${release_tag}" ]]; then
-            echo "Could not find release tag matching ${release_pattern}."
-            exit 1
-          fi
-
-          build_date="${release_tag#${CURRENT_TAG}-}"
-          build_date="${build_date%-${short_sha}}"
-          release_date="${build_date:0:4}-${build_date:4:2}-${build_date:6:2}"
-
-          current_image="${registry}/${repository}:${CURRENT_TAG}"
-          release_image="${registry}/${repository}:${release_tag}"
-
-          digest="$(
-            skopeo inspect \
-              --format '{{.Digest}}' \
-              "docker://${release_image}"
-          )"
-
-          if [[ ! "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            echo "Invalid published digest: ${digest}"
-            exit 1
-          fi
-
-          release_title="Alma Black Box 10 - ${release_date}"
-
-          cat > /tmp/release-notes.md <<EOF_NOTES
-          ## Alma Black Box 10
-
-          Signed Alma Black Box image built from the verified AlmaLinux 10 bootc base image.
-
-          ### Image
-
-          Current image:
-
-          \`\`\`text
-          ${current_image}
-          \`\`\`
-
-          Release-specific image:
-
-          \`\`\`text
-          ${release_image}
-          \`\`\`
-
-          Published digest:
-
-          \`\`\`text
-          ${digest}
-          \`\`\`
-
-          ### Switching to the image
-
-          \`\`\`bash
-          sudo bootc switch ${current_image}
-          \`\`\`
-
-          The container image is signed with Cosign.
-          EOF_NOTES
-
-          if gh release view "${release_tag}" \
-              --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-
-            echo "Updating existing release ${release_tag}"
-
-            gh release edit "${release_tag}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "${release_title}" \
-              --notes-file /tmp/release-notes.md \
-              --latest
-          else
-            echo "Creating release ${release_tag}"
-
-            gh release create "${release_tag}" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --target "${GITHUB_SHA}" \
-              --title "${release_title}" \
-              --notes-file /tmp/release-notes.md \
-              --latest
-          fi
