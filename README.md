@@ -5,7 +5,7 @@ A small, purpose-built monitoring and infrastructure-supervision appliance built
 > [!IMPORTANT]
 > AlmaLinux currently describes its bootc images as experimental. Alma Black Box should also be treated as experimental until it has been validated on your hardware and for your workload.
 
-This project is intentionally **not** an all-purpose server distribution. The operating-system image contains only host-level administration, power/UPS, networking, hardware diagnostics, and the Cockpit host bridge. Replaceable monitoring applications belong in Podman Quadlets.
+This project is intentionally **not** an all-purpose server distribution. The operating-system image contains host-level administration, power/UPS integration, networking, hardware diagnostics, and the Cockpit host bridge. Replaceable monitoring applications belong in Podman Quadlets.
 
 ## Architecture
 
@@ -18,8 +18,6 @@ NUT / UPSide / networking / diagnostics
         |
 Podman + optional supplied Quadlets
 ```
-
-Version 1 intentionally ships only one application Quadlet template: Cockpit's web service. The broader monitoring library will be added only after each Quadlet has been tested.
 
 ## Native host layer
 
@@ -39,17 +37,17 @@ The image deliberately adds:
 - Cockpit system/bridge, networking, SELinux, files, Podman and storage pages
 - Realtek USB Ethernet udev rules
 
-Tailscale, NetBird, NUT, and the Cockpit web service are not enrolled/configured or automatically activated by the generic image.
+Tailscale, NetBird, NUT, and the Cockpit web service are installed but not enrolled or configured by the generic image.
 
 ZRAM is enabled with `zram-generator` using its built-in sizing policy: half of system RAM, capped at 4 GiB.
 
-Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as a Quadlet. This allows UPSide and the host-specific Cockpit pages to work without running the native Cockpit web server.
+Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as an inactive Quadlet template.
 
 ## What is not included
 
 No Docker, Docker Compose, podman-compose, Distrobox, virtualization stack, ZFS, mergerfs, SnapRAID, Samba, NFS server, rclone, PCP, Grafana, Loki, Prometheus, or other application stacks are baked into the OS.
 
-Future monitoring applications will be shipped as inactive, tested Quadlet templates rather than native packages.
+Replaceable monitoring applications should be deployed separately rather than added to the host image.
 
 ## Image
 
@@ -69,22 +67,19 @@ Images are signed with Cosign.
 
 ## Installer ISO
 
-Alma Black Box is distributed primarily as a bootc container image. A bootable unattended installer ISO can be generated on demand with the separate **Alma Black Box ISO Builder** template:
+A bootable unattended installer ISO can be generated on demand with the separate **Alma Black Box ISO Builder** template:
 
 https://github.com/highwaytoit/alma-black-box-iso
 
-Click **Use this template**, create a repository in your own GitHub account, then manually run **Build Alma Black Box installer ISO** from GitHub Actions. The template defaults to `ghcr.io/highwaytoit/alma-black-box:10` and resolves that tag to its current immutable digest at build time, so a future build automatically uses the current Alma Black Box image.
+Click **Use this template**, create a repository in your own GitHub account, then manually run **Build Alma Black Box installer ISO** from GitHub Actions. The template defaults to `ghcr.io/highwaytoit/alma-black-box:10` and resolves that tag to its current immutable digest at build time.
 
-The installer is deliberately destructive and is intended to see only one target disk. Its default layout is 512 MiB EFI, 1 GiB `/boot`, and XFS `/` using the remainder of the disk. The temporary local administrator is `bbox` with password `bbox`; root is locked and the temporary password should be changed immediately after first boot.
+The installer is intentionally destructive. Review the ISO Builder README before use and ensure only the intended target disk is exposed to the installer.
 
-> [!CAUTION]
-> Disconnect every disk except the intended installation disk before booting the unattended ISO on physical hardware.
-
-See the ISO Builder README for build, download, customization, partition-layout, and password instructions.
+The ISO Builder repository documents access options, partition sizing, signature verification, build artifacts, and installation behavior.
 
 ## Local documentation
 
-The same operational documentation is baked into every image at:
+Operational documentation is baked into every image at:
 
 ```text
 /usr/share/alma-black-box/doc/
@@ -96,24 +91,15 @@ Supplied but inactive Quadlet templates are installed at:
 /usr/share/alma-black-box/quadlets/
 ```
 
-The recommended deployment model is to copy a supplied template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched. Symlinking directly to the supplied template is possible but not recommended because a future image update can change the active service definition.
+The recommended deployment model is to copy a supplied template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched.
 
-See [docs/QUADLETS.md](docs/QUADLETS.md) for details.
+See [docs/QUADLETS.md](docs/QUADLETS.md) and [docs/NUT-UPSide.md](docs/NUT-UPSide.md).
 
-## Version 1 test objective
+## Validation status
 
-Version 1 is deliberately narrow. It should prove:
+The image and installer have been exercised in a UEFI virtual machine. Installation, boot, SSH access, signed bootc updates, staged deployments, reboot into a new deployment, rollback retention, ZRAM activation, and basic system health checks have been verified.
 
-1. The custom Alma bootc image builds and is signed.
-2. An installer ISO generated from the ISO Builder template installs the image correctly in a UEFI VM with the intended partition layout.
-3. The installed image boots in a VM.
-4. Native host tools are present.
-5. Tailscale and NetBird are installed but not enrolled.
-6. NUT and UPSide are present but not hardware-configured.
-7. The supplied Cockpit Quadlet can be activated.
-8. A later image update can be applied with bootc and rolled back.
-
-See [docs/VM-TEST.md](docs/VM-TEST.md).
+Hardware-specific behavior should still be validated on each target system before relying on it for infrastructure monitoring or power management.
 
 ## Upstream projects
 
