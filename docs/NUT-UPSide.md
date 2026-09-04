@@ -7,20 +7,14 @@ The generic image deliberately does not contain:
 - UPS model or USB identifiers
 - NUT usernames/passwords
 - `ups.conf` hardware configuration
-- shutdown thresholds
-- on-battery timers
-- Wake-on-LAN target information
+- shutdown thresholds or timers
+- Wake-on-LAN targets
+- site-specific notification or recovery policy
 
-Those settings are deployment-specific.
+Those settings are deployment-specific and should be configured by the administrator after installation.
 
 UPSide is built in a separate build stage and copied into `/usr/share/cockpit/upside/`. Build dependencies such as Node.js and npm do not remain in the final image.
 
-The intended physical deployment is:
+A typical deployment can use Alma Black Box as a NUT server for a directly attached UPS, with other systems connecting as NUT clients over the network.
 
-```text
-UPS USB -> Alma Black Box NUT server -> network NUT clients
-```
-
-For the home-server deployment, the eventual policy is expected to be: sustained on-battery state starts a timer on the protected server; after the configured delay the server shuts itself down cleanly. After mains power returns, the Black Box can later be configured to send Wake-on-LAN to the protected server.
-
-Do not implement hardware-specific NUT configuration in the generic image.
+Do not bake hardware-specific NUT configuration into the generic image.
