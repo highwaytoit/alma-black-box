@@ -85,7 +85,7 @@ See the ISO Builder README for build, download, customization, partition-layout,
 The same operational documentation is baked into every image at:
 
 ```text
-/usr/share/doc/alma-black-box/
+/usr/share/alma-black-box/doc/
 ```
 
 Supplied but inactive Quadlet templates are installed at:
@@ -94,7 +94,9 @@ Supplied but inactive Quadlet templates are installed at:
 /usr/share/alma-black-box/quadlets/
 ```
 
-See [docs/QUADLETS.md](docs/QUADLETS.md) for the supported copy and symlink deployment models.
+The recommended deployment model is to copy a supplied template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched. Symlinking directly to the supplied template is possible but not recommended because a future image update can change the active service definition.
+
+See [docs/QUADLETS.md](docs/QUADLETS.md) for details.
 
 ## Version 1 test objective
 
