@@ -88,6 +88,9 @@ jobs:
           set -euo pipefail
           sudo podman build \
             --pull=always \
+            --security-opt=label=disable \
+            --cap-add=all \
+            --device /dev/fuse \
             --build-arg "ALMA_REPOS_IMAGE=${ALMA_REPOS_REF}" \
             --build-arg "BOOTC_IMAGECTL_IMAGE=${BOOTC_IMAGECTL_REF}" \
             --build-arg "ALMA_BUILDER_IMAGE=${ALMA_BUILDER_REF}" \
