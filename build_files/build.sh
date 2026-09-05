@@ -113,6 +113,8 @@ rpm -q \
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
 
+test -f /etc/profile.d/zz-alma-black-box-prompt.sh
+
 test -f /usr/lib/systemd/system/alma-black-box-update.service
 test -f /usr/lib/systemd/system/alma-black-box-update.timer
 test "$(systemctl is-enabled bootc-fetch-apply-updates.timer)" = "masked"
