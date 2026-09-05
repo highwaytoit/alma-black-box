@@ -60,6 +60,11 @@ done
 # socket/service disabled if a future dependency ever happens to pull it in.
 systemctl disable cockpit.socket cockpit.service 2>/dev/null || true
 
+# Upstream bootc auto-update units reboot after applying an update. Black Box
+# stages updates automatically but leaves the reboot under administrator control.
+systemctl mask bootc-fetch-apply-updates.timer bootc-fetch-apply-updates.service
+systemctl enable alma-black-box-update.timer
+
 # Install image signature trust for future bootc updates from this repository.
 /ctx/build_files/install-image-trust.sh "${IMAGE_REPOSITORY}"
 
@@ -107,6 +112,12 @@ rpm -q \
 
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
+
+test -f /usr/lib/systemd/system/alma-black-box-update.service
+test -f /usr/lib/systemd/system/alma-black-box-update.timer
+test "$(systemctl is-enabled bootc-fetch-apply-updates.timer)" = "masked"
+test "$(systemctl is-enabled bootc-fetch-apply-updates.service)" = "masked"
+test "$(systemctl is-enabled alma-black-box-update.timer)" = "enabled"
 
 # nut-client can be unpacked before the main nut package creates its account,
 # which produces RPM ownership warnings during the transaction. Require the
