@@ -1,6 +1,6 @@
 # Alma Black Box
 
-A small, purpose-built monitoring and infrastructure-supervision appliance built on the official AlmaLinux 10 bootc image.
+A small, purpose-built monitoring and infrastructure-supervision appliance composed from AlmaLinux 10 repositories using the bootc minimal-plus profile.
 
 > [!IMPORTANT]
 > AlmaLinux currently describes its bootc images as experimental. Alma Black Box should also be treated as experimental until it has been validated on your hardware and for your workload.
@@ -10,7 +10,9 @@ This project is intentionally **not** an all-purpose server distribution. The op
 ## Architecture
 
 ```text
-AlmaLinux 10 bootc
+AlmaLinux 10 repositories
+        |
+bootc minimal-plus base
         |
 Alma Black Box host layer
         |
@@ -29,19 +31,37 @@ The image deliberately adds:
 - NetBird
 - WireGuard tools
 - firewalld and NetworkManager
-- fwupd
+- fwupd and fwupd-efi
 - smartmontools, lm_sensors, nvme-cli, usbutils, pciutils, ethtool and PowerTOP
-- btop, micro, tmux, jq and rsync
+- btop, micro, nano, vim-enhanced, tmux, jq and rsync
 - tcpdump, bind-utils, traceroute, nmap-ncat and iperf3
 - SELinux administration tooling
 - Cockpit system/bridge, networking, SELinux, files, Podman and storage pages
 - Realtek USB Ethernet udev rules
 
+For the complete current software and build-time validation list, review [build_files/build.sh](https://github.com/highwaytoit/alma-black-box/blob/main/build_files/build.sh).
+
 Tailscale, NetBird, NUT, and the Cockpit web service are installed but not enrolled or configured by the generic image.
+
+Third-party package repositories used during image composition are disabled in the finished image. They are build-time sources, not enabled host package sources.
 
 ZRAM is enabled with `zram-generator` using its built-in sizing policy: half of system RAM, capped at 4 GiB.
 
 Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as an inactive Quadlet template.
+
+## Hardware and firmware support
+
+The image includes a practical firmware baseline for common physical and virtual systems, including:
+
+- AMD CPU microcode and AMD GPU firmware
+- Intel CPU microcode and Intel GPU firmware
+- Intel Wi-Fi firmware
+- Realtek firmware
+- Qualcomm/Atheros firmware
+- fwupd and fwupd-efi for supported firmware updates
+- QEMU guest agent for virtual-machine use and testing
+
+Additional firmware support requests are welcome. Hardware requiring out-of-tree kernel modules, AKMODs, proprietary drivers, or other substantial kernel integration will be reviewed case by case and is not guaranteed to be included.
 
 ## What is not included
 
@@ -64,6 +84,12 @@ ghcr.io/highwaytoit/alma-black-box:10-20260902-abcdef1
 ```
 
 Images are signed with Cosign.
+
+## Update behavior
+
+Alma Black Box checks for bootc updates automatically and stages a new deployment when one is available.
+
+The appliance does **not** reboot automatically after staging an update. Reboot timing remains under administrator control. The previous deployment is retained for rollback/recovery.
 
 ## Installer ISO
 
@@ -97,7 +123,9 @@ See [docs/QUADLETS.md](docs/QUADLETS.md) and [docs/NUT-UPSide.md](docs/NUT-UPSid
 
 ## Validation status
 
-The image and installer have been exercised in a UEFI virtual machine. Installation, boot, SSH access, signed bootc updates, staged deployments, reboot into a new deployment, rollback retention, ZRAM activation, and basic system health checks have been verified.
+Tested in UEFI virtual machines and on a Lenovo ThinkCentre M715q with AMD Ryzen 3 PRO 2200GE.
+
+Installation, boot, SSH access, Ethernet, Wi-Fi/Bluetooth firmware loading, AMD graphics initialization, signed bootc updates, staged deployments, administrator-controlled reboot into a new deployment, rollback retention, ZRAM activation, Cockpit/Podman/Quadlet operation, and basic system health checks have been verified.
 
 Hardware-specific behavior should still be validated on each target system before relying on it for infrastructure monitoring or power management.
 
