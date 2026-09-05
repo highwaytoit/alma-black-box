@@ -16,5 +16,3 @@ Those settings are deployment-specific and should be configured by the administr
 UPSide is built in a separate build stage and copied into `/usr/share/cockpit/upside/`. Build dependencies such as Node.js and npm do not remain in the final image.
 
 A typical deployment can use Alma Black Box as a NUT server for a directly attached UPS, with other systems connecting as NUT clients over the network.
-
-Do not bake hardware-specific NUT configuration into the generic image.
