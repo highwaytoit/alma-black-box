@@ -85,13 +85,14 @@ for cmd in \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
     btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 \
     openssl curl lsof file unzip semanage \
-    cockpit-bridge; do
+    cockpit-bridge resolvectl; do
     command -v "${cmd}"
 done
 
 rpm -q \
     NetworkManager-tui \
     NetworkManager-wifi \
+    systemd-resolved \
     fwupd \
     fwupd-efi \
     amd-ucode-firmware \
@@ -113,6 +114,14 @@ rpm -q \
 
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
+
+test -f /etc/NetworkManager/conf.d/90-systemd-resolved.conf
+grep -Fqx '[main]' /etc/NetworkManager/conf.d/90-systemd-resolved.conf
+grep -Fqx 'dns=systemd-resolved' /etc/NetworkManager/conf.d/90-systemd-resolved.conf
+
+test -f /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
+    /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
 
 test -f /etc/profile.d/zz-alma-black-box-prompt.sh
 
@@ -159,8 +168,11 @@ fi
 # UPS behavior, Cockpit web service, and monitoring applications require explicit
 # administrator activation/configuration.
 systemctl enable NetworkManager.service 2>/dev/null || true
+systemctl enable systemd-resolved.service
 systemctl enable firewalld.service 2>/dev/null || true
 systemctl enable sshd.service 2>/dev/null || true
+
+test "$(systemctl is-enabled systemd-resolved.service)" = "enabled"
 
 # bootc images must not carry build-time package-manager/runtime state in /var.
 # Alma's own atomic image derivatives clean /var after composition and let

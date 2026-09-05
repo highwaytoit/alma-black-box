@@ -158,6 +158,7 @@ jobs:
 
               bootc container lint --fatal-warnings
               rpm -q \
+                systemd-resolved \
                 fwupd-efi \
                 qemu-guest-agent \
                 nut \
@@ -173,6 +174,7 @@ jobs:
               command -v fwupdmgr
               command -v smartctl
               command -v micro
+              command -v resolvectl
               semodule -l >/dev/null
               check_file /usr/share/cockpit/upside/manifest.json
               check_file /usr/share/alma-black-box/quadlets/cockpit.container
@@ -180,6 +182,11 @@ jobs:
               check_file /usr/lib/pki/containers/highwaytoit.pub
               check_file /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
               check_file /etc/systemd/zram-generator.conf
+              check_file /etc/NetworkManager/conf.d/90-systemd-resolved.conf
+              check_file /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+              grep -Fqx "dns=systemd-resolved" /etc/NetworkManager/conf.d/90-systemd-resolved.conf
+              grep -Fqx "L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf" /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+              test "$(systemctl is-enabled systemd-resolved.service)" = "enabled"
               jq empty /etc/containers/policy.json
               grep -Fq "ghcr.io/highwaytoit/alma-black-box:" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
               grep -Fq "use-sigstore-attachments: true" /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
