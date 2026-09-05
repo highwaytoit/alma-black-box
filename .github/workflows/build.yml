@@ -20,7 +20,8 @@ concurrency:
 env:
   IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/alma-black-box
   CURRENT_TAG: '10'
-  RECHUNK_MAX_LAYERS: '128'
+  RECHUNK_MAX_LAYERS: '127'
+  OCI_LAYER_LIMIT: '128'
   ALMA_REPOS_IMAGE: quay.io/almalinuxorg/10-base:10
   BOOTC_IMAGECTL_IMAGE: quay.io/centos-bootc/centos-bootc:stream10
   ALMA_BUILDER_IMAGE: quay.io/almalinuxorg/10-kitten-base:10-kitten
@@ -107,8 +108,15 @@ jobs:
         run: |
           set -euo pipefail
 
+          rechunk_tmp="${RUNNER_TEMP}/alma-black-box-rechunk"
+          sudo mkdir -p "${rechunk_tmp}"
+          sudo chmod 1777 "${rechunk_tmp}"
+
+          df -h "${RUNNER_TEMP}" /var/lib/containers
+
           sudo podman run --rm --privileged \
             -v /var/lib/containers:/var/lib/containers \
+            -v "${rechunk_tmp}:/var/tmp" \
             --entrypoint /usr/libexec/bootc-base-imagectl \
             localhost/alma-black-box:unrechunked \
             rechunk \
@@ -123,13 +131,13 @@ jobs:
           )"
 
           [[ "${layer_count}" =~ ^[0-9]+$ ]]
-          if (( layer_count > RECHUNK_MAX_LAYERS )); then
-            echo "ERROR: rechunked image has ${layer_count} layers; maximum is ${RECHUNK_MAX_LAYERS}" >&2
+          if (( layer_count > OCI_LAYER_LIMIT )); then
+            echo "ERROR: rechunked image has ${layer_count} layers; OCI maximum is ${OCI_LAYER_LIMIT}" >&2
             exit 1
           fi
 
           echo "layers=${layer_count}" >> "${GITHUB_OUTPUT}"
-          echo "Rechunked image layers: ${layer_count} / max ${RECHUNK_MAX_LAYERS}"
+          echo "Rechunked image layers: ${layer_count} / OCI max ${OCI_LAYER_LIMIT} (RPM chunk target ${RECHUNK_MAX_LAYERS})"
 
       - name: Validate completed image
         shell: bash
@@ -273,7 +281,7 @@ jobs:
             echo "- Alma repository source: ${REPOS_REF:-unknown}"
             echo "- bootc imagectl source: ${IMAGECTL_REF:-unknown}"
             echo "- Alma builder source: ${BUILDER_REF:-unknown}"
-            echo "- Rechunked layers: ${RECHUNK_LAYERS:-unknown} / max ${RECHUNK_MAX_LAYERS}"
+            echo "- Rechunked layers: ${RECHUNK_LAYERS:-unknown} / OCI max ${OCI_LAYER_LIMIT} (RPM chunk target ${RECHUNK_MAX_LAYERS})"
             if [[ -n "${PUBLISHED_DIGEST:-}" ]]; then
               echo "- Published: ${IMAGE_REPOSITORY}@${PUBLISHED_DIGEST}"
             else
