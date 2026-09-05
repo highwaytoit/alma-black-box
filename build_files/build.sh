@@ -83,7 +83,7 @@ for cmd in \
     upsc nut-scanner \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
-    btop micro tmux jq rsync tcpdump dig traceroute nc iperf3 semanage \
+    btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 semanage \
     cockpit-bridge; do
     command -v "${cmd}"
 done
