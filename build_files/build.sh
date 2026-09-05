@@ -95,6 +95,7 @@ rpm -q \
     iwlegacy-firmware \
     iwlwifi-dvm-firmware \
     iwlwifi-mvm-firmware \
+    atheros-firmware \
     realtek-firmware \
     qemu-guest-agent \
     zram-generator \
@@ -121,6 +122,24 @@ test -f /usr/share/cockpit/upside/manifest.json
 test -f /usr/share/alma-black-box/quadlets/cockpit.container
 test -f /usr/share/alma-black-box/doc/README.md
 ! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/alma-black-box/quadlets/cockpit.container
+
+# External package repositories are build-time inputs only. Keep their repo
+# definitions for provenance and future image composition, but disable them in
+# the deployed image so host-side package-manager operations cannot use them.
+for repo_file in \
+    /etc/yum.repos.d/epel*.repo \
+    /etc/yum.repos.d/tailscale.repo \
+    /etc/yum.repos.d/netbird.repo; do
+    [[ -e "${repo_file}" ]] || continue
+    sed -Ei 's/^[[:space:]]*enabled[[:space:]]*=[[:space:]]*1[[:space:]]*$/enabled=0/' "${repo_file}"
+done
+
+# Fail the build if any known external source remains enabled.
+if dnf repolist --enabled | grep -Eiq 'epel|tailscale|netbird'; then
+    echo "ERROR: an external package repository remains enabled in the final image."
+    dnf repolist --enabled
+    exit 1
+fi
 
 # Services which define the host itself remain available. Remote-access clients,
 # UPS behavior, Cockpit web service, and monitoring applications require explicit
