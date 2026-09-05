@@ -82,7 +82,4 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" \
     /ctx/build_files/build.sh
 
-# Temporary testing-only marker for bootc update/reboot/rollback validation.
-RUN printf 'update-test-2\n' > /usr/share/alma-black-box/update-test
-
 RUN bootc container lint --fatal-warnings
