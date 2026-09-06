@@ -52,6 +52,12 @@ ZRAM is enabled with `zram-generator` using its built-in sizing policy: half of 
 
 Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as an inactive Quadlet template.
 
+## Administrative access
+
+Alma Black Box follows the Fedora CoreOS/uCore appliance-style administration pattern: users in the `wheel` group have passwordless `sudo` access. This avoids repeated password prompts for normal administrator commands such as `sudo bootc status`, `sudo bootc update`, `sudo systemctl`, and `sudo podman`.
+
+Only trusted administrator accounts should be added to `wheel`.
+
 ## Hardware and firmware support
 
 The image includes a practical firmware baseline for common physical and virtual systems, including:

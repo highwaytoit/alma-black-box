@@ -11,6 +11,11 @@ source /ctx/build_files/software.env
 # Declarative host configuration first.
 cp -avf /ctx/system_files/. /
 
+# Follow the Fedora CoreOS/uCore appliance-style administration model: trusted
+# administrators in wheel can use sudo without repeated password prompts.
+chown root:root /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+chmod 0440 /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+
 # AlmaLinux 10.1+ enables CRB by default. EPEL software on EL10 expects the
 # CRB SELinux policy split to be available, so fail clearly if the upstream
 # base ever changes that contract rather than silently composing a broken image.
@@ -79,7 +84,7 @@ sed -i "s|@@COCKPIT_WS_IMAGE@@|${COCKPIT_WS_IMAGE}|g" \
 
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
-    bootc podman nmcli nmtui firewall-cmd sshd \
+    bootc podman nmcli nmtui firewall-cmd sshd sudo visudo \
     upsc nut-scanner \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
@@ -93,6 +98,7 @@ rpm -q \
     NetworkManager-tui \
     NetworkManager-wifi \
     systemd-resolved \
+    sudo \
     fwupd \
     fwupd-efi \
     amd-ucode-firmware \
@@ -122,6 +128,12 @@ grep -Fqx 'dns=systemd-resolved' /etc/NetworkManager/conf.d/90-systemd-resolved.
 test -f /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
 grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
     /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+
+test -f /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+grep -Fqx '%wheel ALL=(ALL) NOPASSWD: ALL' \
+    /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+test "$(stat -c '%a %U %G' /etc/sudoers.d/90-alma-black-box-passwordless-wheel)" = "440 root root"
+visudo -cf /etc/sudoers
 
 test -f /etc/profile.d/zz-alma-black-box-prompt.sh
 

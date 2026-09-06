@@ -23,6 +23,7 @@ required = [
     'quadlets/cockpit.container',
     'system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf',
     'system_files/usr/lib/tmpfiles.d/alma-black-box-resolved.conf',
+    'system_files/etc/sudoers.d/90-alma-black-box-passwordless-wheel',
     'system_files/usr/lib/udev/rules.d/50-usb-realtek-net.rules',
 ]
 for path in required:
@@ -36,5 +37,7 @@ grep -q 'BEGIN PUBLIC KEY' almalinux-bootc.pub
 grep -Fqx 'dns=systemd-resolved' system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf
 grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
     system_files/usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+grep -Fqx '%wheel ALL=(ALL) NOPASSWD: ALL' \
+    system_files/etc/sudoers.d/90-alma-black-box-passwordless-wheel
 
 echo "Static repository validation passed."
