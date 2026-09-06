@@ -1,10 +1,13 @@
 # Alma Black Box
 
+[![Build signed Alma Black Box images](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml)
+
 A small, purpose-built monitoring and infrastructure-supervision appliance composed from AlmaLinux 10 repositories using the bootc minimal-plus profile.
 
 > [!IMPORTANT]
-> AlmaLinux currently describes its bootc images as experimental. Alma Black Box should also be treated as experimental until it has been validated on your hardware and for your workload.
-
+> AlmaLinux currently describes its bootc images as experimental. Alma Black Box has been tested in virtual machines and on real hardware. 
+> As of September 5, 2026, it is running as a monitoring node on a micro PC with an AMD Ryzen 3 PRO 2200GE. Known issues found during testing have been fixed or patched.
+ 
 This project is intentionally **not** an all-purpose server distribution. The operating-system image contains host-level administration, power/UPS integration, networking, hardware diagnostics, and the Cockpit host bridge. Replaceable monitoring applications belong in Podman Quadlets.
 
 ## Architecture
