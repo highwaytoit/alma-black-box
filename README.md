@@ -90,9 +90,11 @@ Images are signed with Cosign.
 
 ## Update behavior
 
-Alma Black Box checks for bootc updates automatically and stages a new deployment when one is available.
+Alma Black Box images are rebuilt automatically once per week, on Saturday.
 
-The appliance does **not** reboot automatically after staging an update. Reboot timing remains under administrator control. The previous deployment is retained for rollback/recovery.
+When a new image is published, installed systems check for bootc updates automatically and stage the new deployment when it becomes available.
+
+The appliance does **not** reboot automatically after staging an update. Reboot timing remains under administrator control, and the previous deployment is retained for rollback/recovery.
 
 ## Installer ISO
 
