@@ -175,8 +175,11 @@ systemctl enable sshd.service 2>/dev/null || true
 test "$(systemctl is-enabled systemd-resolved.service)" = "enabled"
 
 # bootc images must not carry build-time package-manager/runtime state in /var.
-# Alma's own atomic image derivatives clean /var after composition and let
-# systemd-tmpfiles recreate runtime state on the deployed machine.
+# Alma's own atomic image derivatives clean /var after composition. Keep the
+# standard /var/tmp mountpoint in the image skeleton because early services such
+# as systemd-resolved can require PrivateTmp before systemd-tmpfiles-setup runs.
 dnf clean all
 rm -rf /var
 install -d -m0755 /var
+install -d -m1777 /var/tmp
+test "$(stat -c '%a %U %G' /var/tmp)" = "1777 root root"
