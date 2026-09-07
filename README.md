@@ -1,6 +1,7 @@
 # Alma Black Box
 
-[![Build signed Alma Black Box images](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml)
+[![Stable :10](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml)
+[![Testing :testing](https://github.com/highwaytoit/alma-black-box/actions/workflows/build-testing.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build-testing.yml)
 
 A small, purpose-built monitoring and infrastructure-supervision appliance composed from AlmaLinux 10 repositories using the bootc minimal-plus profile.
 
@@ -80,23 +81,34 @@ Replaceable monitoring applications should be deployed separately rather than ad
 
 ## Image
 
-The current image is published as:
+Stable channel:
 
 ```text
 ghcr.io/highwaytoit/alma-black-box:10
 ```
 
-Each main-branch build also receives an immutable build tag such as:
+Testing channel:
+
+```text
+ghcr.io/highwaytoit/alma-black-box:testing
+```
+
+`:10` is the stable channel and is rebuilt weekly.
+
+`:testing` follows the testing branch and is rebuilt daily. It is intended for users who prefer to receive current Alma Black Box changes and refreshed upstream AlmaLinux packages earlier. Both channels use the same build validation and image-signing process.
+
+Each build also receives an immutable build tag. Examples:
 
 ```text
 ghcr.io/highwaytoit/alma-black-box:10-20260902-abcdef1
+ghcr.io/highwaytoit/alma-black-box:testing-20260907-abcdef1
 ```
 
 Images are signed with Cosign.
 
 ## Update behavior
 
-Alma Black Box images are rebuilt automatically once per week, on Saturday.
+The stable `:10` channel is rebuilt automatically once per week, on Saturday. The `:testing` channel is rebuilt daily.
 
 When a new image is published, installed systems check for bootc updates automatically and stage the new deployment when it becomes available.
 
