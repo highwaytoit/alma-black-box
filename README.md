@@ -1,167 +1,198 @@
-# Alma Black Box
+# Pasiv Black Box
 
-[![Stable :10](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build.yml)
-[![Testing :testing](https://github.com/highwaytoit/alma-black-box/actions/workflows/build-testing.yml/badge.svg)](https://github.com/highwaytoit/alma-black-box/actions/workflows/build-testing.yml)
+[![Stable](https://img.shields.io/badge/channel-10-8A2BE2)](https://github.com/highwaytoit/pasiv-black-box/pkgs/container/pasiv-black-box)
+[![Testing](https://img.shields.io/badge/channel-testing-darkred)](https://github.com/highwaytoit/pasiv-black-box/pkgs/container/pasiv-black-box)
 
-A small, purpose-built monitoring and infrastructure-supervision appliance composed from AlmaLinux 10 repositories using the bootc minimal-plus profile.
+Pasiv Black Box is a small, purpose-built bootc monitoring and infrastructure-supervision appliance built on AlmaLinux OS 10 using a minimal-plus base.
+
+It is intentionally not a general-purpose server distribution. The host is kept focused on infrastructure supervision, UPS and power integration, networking, hardware diagnostics, and the native components needed to support containerized monitoring services.
 
 > [!IMPORTANT]
-> AlmaLinux currently describes its bootc images as experimental. Alma Black Box has been tested in virtual machines and on real hardware. 
-> As of September 5, 2026, it is running as a monitoring node on a micro PC with an AMD Ryzen 3 PRO 2200GE. Known issues found during testing have been fixed or patched.
- 
-This project is intentionally **not** an all-purpose server distribution. The operating-system image contains host-level administration, power/UPS integration, networking, hardware diagnostics, and the Cockpit host bridge. Replaceable monitoring applications belong in Podman Quadlets.
+> Pasiv Black Box is still under active development. It is suitable for VM testing and lab use, and it is also being exercised on real hardware, but changes may still affect image composition and deployment behavior.
 
-## Architecture
+## Upstream foundation
+
+Pasiv Black Box uses AlmaLinux OS 10 as its long-term-stable Enterprise Linux foundation. AlmaLinux provides the kernel, core packages, and EL10 compatibility layer. Pasiv Black Box adds the appliance configuration, monitoring-host tooling, update behavior, image signing, and release pipeline.
 
 ```text
-AlmaLinux 10 repositories
-        |
-bootc minimal-plus base
-        |
-Alma Black Box host layer
-        |
-NUT / UPSide / networking / diagnostics
-        |
-Podman + optional supplied Quadlets
+AlmaLinux OS 10
+      |
+      v
+minimal-plus bootc rootfs
+      |
+      v
+Pasiv Black Box
+      |
+      +-- UPS / power
+      +-- networking
+      +-- host diagnostics
+      +-- Cockpit bridge
+      +-- Podman / Quadlets
 ```
 
-## Native host layer
+Pasiv Black Box is an independent community project and is not affiliated with or endorsed by the AlmaLinux OS Foundation.
 
-The image deliberately adds:
+## What Pasiv Black Box is for
 
-- NUT and NUT client
-- UPSide Cockpit extension
-- Tailscale
-- NetBird
-- WireGuard tools
-- firewalld and NetworkManager
-- fwupd and fwupd-efi
-- smartmontools, lm_sensors, nvme-cli, usbutils, pciutils, ethtool and PowerTOP
-- btop, micro, nano, vim-enhanced, tmux, jq and rsync
-- tcpdump, bind-utils, traceroute, nmap-ncat and iperf3
-- SELinux administration tooling
-- Cockpit system/bridge, networking, SELinux, files, Podman and storage pages
-- Realtek USB Ethernet udev rules
+Pasiv Black Box is designed to supervise infrastructure and physical hosts rather than to become another all-purpose application server.
 
-For the complete current software and build-time validation list, review [build_files/build.sh](https://github.com/highwaytoit/alma-black-box/blob/main/build_files/build.sh).
+The host layer keeps services close to the hardware when that is useful or necessary, while replaceable monitoring applications are expected to run as Podman Quadlets.
 
-Tailscale, NetBird, NUT, and the Cockpit web service are installed but not enrolled or configured by the generic image.
+### Native host layer
 
-Third-party package repositories used during image composition are disabled in the finished image. They are build-time sources, not enabled host package sources.
+| Area | Included |
+| --- | --- |
+| UPS / power | NUT, UPSide, PowerTOP |
+| Networking | NetworkManager, firewalld, Tailscale, NetBird, WireGuard tools |
+| Administration | Cockpit bridge/pages, Micro, btop, tmux, jq |
+| Hardware | firmware, fwupd, SMART, NVMe, sensors, USB/PCI tools |
+| Containers | Podman and systemd Quadlets |
+| Diagnostics | tcpdump, dig, traceroute, nc, iperf3 |
 
-ZRAM is enabled with `zram-generator` using its built-in sizing policy: half of system RAM, capped at 4 GiB.
+The exact package set is defined in [`build_files/software.env`](build_files/software.env).
 
-Cockpit is intentionally split: host bridge/pages are native, while the browser-facing `cockpit-ws` service is supplied as an inactive Quadlet template.
+## Intentionally not included
+
+Pasiv Black Box deliberately avoids turning the host into a kitchen-sink server image.
+
+It does not include a built-in virtualization stack, Docker, Docker Compose, ZFS, mergerfs, Samba/NFS server roles, or a baked-in Prometheus/Grafana/Loki application stack.
+
+Replaceable monitoring applications belong in Podman Quadlets rather than in the host image.
 
 ## Administrative access
 
-Alma Black Box follows the Fedora CoreOS/uCore appliance-style administration pattern: users in the `wheel` group have passwordless `sudo` access. This avoids repeated password prompts for normal administrator commands such as `sudo bootc status`, `sudo bootc update`, `sudo systemctl`, and `sudo podman`.
+Pasiv Black Box follows an appliance-style administration model.
 
-Only trusted administrator accounts should be added to `wheel`.
+- SSH is enabled.
+- Members of the `wheel` group have passwordless sudo.
+- Cockpit system components are installed natively.
+- The browser-facing Cockpit web service is supplied as a Quadlet template and is not automatically activated.
 
-## Hardware and firmware support
+The system-wide interactive Bash prompt keeps the standard RHEL-style shape with a dark-red `user@host` identity.
 
-The image includes a practical firmware baseline for common physical and virtual systems, including:
+## Networking and remote access
 
-- AMD CPU microcode and AMD GPU firmware
-- Intel CPU microcode and Intel GPU firmware
-- Intel Wi-Fi firmware
-- Realtek firmware
-- Qualcomm/Atheros firmware
-- fwupd and fwupd-efi for supported firmware updates
-- QEMU guest agent for virtual-machine use and testing
+The image includes NetworkManager, firewalld, systemd-resolved, WireGuard tooling, Tailscale, and NetBird.
 
-Additional firmware support requests are welcome. Hardware requiring out-of-tree kernel modules, AKMODs, proprietary drivers, or other substantial kernel integration will be reviewed case by case and is not guaranteed to be included.
+Tailscale and NetBird are installed but are not automatically enrolled. Remote-access identity, keys, and network policy remain deployment-specific.
 
-## What is not included
+## UPS and monitoring role
 
-No Docker, Docker Compose, podman-compose, Distrobox, virtualization stack, ZFS, mergerfs, SnapRAID, Samba, NFS server, rclone, PCP, Grafana, Loki, Prometheus, or other application stacks are baked into the OS.
+NUT and UPSide are included natively because UPS monitoring, host shutdown, USB access, and power-state handling belong to the host operating system.
 
-Replaceable monitoring applications should be deployed separately rather than added to the host image.
+The generic image does not contain site-specific UPS configuration, usernames/passwords, shutdown thresholds, Wake-on-LAN targets, or recovery policy.
 
-## Image
+See [`docs/NUT-UPSide.md`](docs/NUT-UPSide.md) for the local deployment model.
 
-Stable channel:
+## Images and release channels
 
-```text
-ghcr.io/highwaytoit/alma-black-box:10
-```
-
-Testing channel:
+### Stable
 
 ```text
-ghcr.io/highwaytoit/alma-black-box:testing
+ghcr.io/highwaytoit/pasiv-black-box:10
 ```
 
-`:10` is the stable channel and is rebuilt weekly.
-
-`:testing` follows the testing branch and is rebuilt daily. It is intended for users who prefer to receive current Alma Black Box changes and refreshed upstream AlmaLinux packages earlier. Both channels use the same build validation and image-signing process.
-
-Each build also receives an immutable build tag. Examples:
+### Testing
 
 ```text
-ghcr.io/highwaytoit/alma-black-box:10-20260902-abcdef1
-ghcr.io/highwaytoit/alma-black-box:testing-20260907-abcdef1
+ghcr.io/highwaytoit/pasiv-black-box:testing
 ```
 
-Images are signed with Cosign.
+Immutable build tags are also published:
 
-## Update behavior
+```text
+ghcr.io/highwaytoit/pasiv-black-box:10-YYYYMMDD-abcdef1
+ghcr.io/highwaytoit/pasiv-black-box:testing-YYYYMMDD-abcdef1
+```
 
-The stable `:10` channel is rebuilt automatically once per week, on Saturday. The `:testing` channel is rebuilt daily.
+| Channel | Moving tag | Branch | Schedule |
+| --- | --- | --- | --- |
+| Stable | `:10` | `main` | Saturday |
+| Testing | `:testing` | `testing` | Daily |
 
-When a new image is published, installed systems check for bootc updates automatically and stage the new deployment when it becomes available.
+The stable channel is intended for the normal deployment path. The testing channel exists for validating upcoming changes before they reach stable.
 
-The appliance does **not** reboot automatically after staging an update. Reboot timing remains under administrator control, and the previous deployment is retained for rollback/recovery.
+## Updates
+
+Pasiv Black Box uses bootc for image updates.
+
+The supplied update timer stages updates automatically but does not automatically reboot the machine. The administrator stays in control of when a staged deployment becomes active.
+
+Useful commands:
+
+```bash
+sudo bootc status
+sudo bootc upgrade
+```
+
+To switch an existing installation to the canonical image:
+
+```bash
+sudo bootc switch ghcr.io/highwaytoit/pasiv-black-box:10
+```
+
+## Image signing
+
+Published images are signed with Cosign.
+
+The image installs its own container-signature trust configuration so bootc and containers/image can verify the canonical `ghcr.io/highwaytoit/pasiv-black-box` repository.
+
+The public signing key is stored in this repository as [`cosign.pub`](cosign.pub).
 
 ## Installer ISO
 
-A bootable unattended installer ISO can be generated on demand with the separate **Alma Black Box ISO Builder** template:
+The installation ISO is maintained separately from the operating-system image.
 
-https://github.com/highwaytoit/alma-black-box-iso
-
-Click **Use this template**, create a repository in your own GitHub account, then manually run **Build Alma Black Box installer ISO** from GitHub Actions. The template defaults to `ghcr.io/highwaytoit/alma-black-box:10` and resolves that tag to its current immutable digest at build time.
-
-The installer is intentionally destructive. Review the ISO Builder README before use and ensure only the intended target disk is exposed to the installer.
-
-The ISO Builder repository documents access options, partition sizing, signature verification, build artifacts, and installation behavior.
+The current installer work remains in its own repository and is intentionally not coupled to the image cleanup in this repository. Hostname and initial-user choices belong to the installer/deployment layer, not to the generic Pasiv Black Box image.
 
 ## Local documentation
 
-Operational documentation is baked into every image at:
+Every image installs local documentation and supplied Quadlet templates under:
 
 ```text
-/usr/share/alma-black-box/doc/
+/usr/share/pasiv-black-box/doc/
+/usr/share/pasiv-black-box/quadlets/
 ```
 
-Supplied but inactive Quadlet templates are installed at:
+Supplied Quadlets are templates only. They are deliberately kept outside Podman's active Quadlet search directories until the administrator chooses to deploy them.
 
-```text
-/usr/share/alma-black-box/quadlets/
-```
+See:
 
-The recommended deployment model is to copy a supplied template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched.
-
-See [docs/QUADLETS.md](docs/QUADLETS.md) and [docs/NUT-UPSide.md](docs/NUT-UPSide.md).
+- [`docs/README.md`](docs/README.md)
+- [`docs/QUADLETS.md`](docs/QUADLETS.md)
+- [`docs/NUT-UPSide.md`](docs/NUT-UPSide.md)
 
 ## Validation status
 
-Tested in UEFI virtual machines and on a Lenovo ThinkCentre M715q with AMD Ryzen 3 PRO 2200GE.
+The image build validates the bootc container, required host packages, image-signature trust, systemd-resolved integration, supplied documentation and Quadlets, and the Pasiv Black Box operating-system identity.
 
-Installation, boot, SSH access, Ethernet, Wi-Fi/Bluetooth firmware loading, AMD graphics initialization, signed bootc updates, staged deployments, administrator-controlled reboot into a new deployment, rollback retention, ZRAM activation, Cockpit/Podman/Quadlet operation, and basic system health checks have been verified.
+Pasiv Black Box is also being exercised on a Lenovo ThinkCentre M715q with an AMD Ryzen 3 PRO 2200GE as a monitoring node.
 
-Hardware-specific behavior should still be validated on each target system before relying on it for infrastructure monitoring or power management.
+## About the name
 
-## Upstream projects
+**Pasiv** is intentional.
 
-- AlmaLinux bootc: https://github.com/AlmaLinux/bootc-images
-- AlmaLinux Atomic Desktop: https://github.com/AlmaLinux/atomic-desktop
-- bootc: https://github.com/bootc-dev/bootc
-- osbuild: https://github.com/osbuild
-- Cockpit: https://github.com/cockpit-project/cockpit
-- Network UPS Tools: https://github.com/networkupstools/nut
-- UPSide: https://github.com/deviationist/cockpit-upside
-- Tailscale: https://tailscale.com/
-- NetBird: https://netbird.io/
+If you know why a small black box might connect several sleeping minds to the same shared world, you probably already understand the name.
 
-The operating-system engineering belongs upstream. Alma Black Box intentionally remains a thin appliance layer.
+Just don't fall asleep.
+
+For everyone else, it is simply a black box.
+
+## Upstream and references
+
+Pasiv Black Box depends on and benefits from several upstream projects, including:
+
+- [AlmaLinux OS](https://almalinux.org/)
+- [bootc](https://github.com/bootc-dev/bootc)
+- [Podman](https://podman.io/)
+- [Cockpit](https://cockpit-project.org/)
+- [Network UPS Tools](https://networkupstools.org/)
+- [UPSide](https://github.com/deviationist/cockpit-upside)
+- [Tailscale](https://tailscale.com/)
+- [NetBird](https://netbird.io/)
+
+Third-party source and attribution details are recorded in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+## License
+
+See [`LICENSE`](LICENSE).
