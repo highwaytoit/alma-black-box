@@ -1,6 +1,7 @@
 ARG ALMA_REPOS_IMAGE=quay.io/almalinuxorg/10-base:10
 ARG BOOTC_IMAGECTL_IMAGE=quay.io/centos-bootc/centos-bootc:stream10
 ARG ALMA_BUILDER_IMAGE=quay.io/almalinuxorg/10-kitten-base:10-kitten
+ARG UPSIDE_PACKAGE_IMAGE=ghcr.io/home-server-project/cockpit-upside:stable
 ARG IMAGE_REPOSITORY=ghcr.io/highwaytoit/pasiv-black-box
 
 # Compose a fresh AlmaLinux 10 bootc root filesystem from the upstream
@@ -40,23 +41,9 @@ COPY quadlets /quadlets
 COPY docs /docs
 COPY cosign.pub /cosign.pub
 
-# UPSide is built separately so Node.js/npm/git/build dependencies never remain
-# in the final Pasiv Black Box image.
-FROM registry.fedoraproject.org/fedora:44 AS upside-builder
-COPY build_files/software.env /tmp/software.env
-RUN dnf install -y git make nodejs npm tar \
-    && . /tmp/software.env \
-    && git clone https://github.com/deviationist/cockpit-upside.git /src/upside \
-    && cd /src/upside \
-    && test "$(git rev-parse "refs/tags/${UPSIDE_VERSION}^{commit}")" = "${UPSIDE_COMMIT}" \
-    && git checkout --detach "${UPSIDE_COMMIT}" \
-    && make \
-    && (npm audit --omit=dev --audit-level=high || true)
-RUN cd /src/upside \
-    && mkdir -p /out/usr/share/cockpit/upside \
-    && cp -a dist/. /out/usr/share/cockpit/upside/ \
-    && test -f /out/usr/share/cockpit/upside/manifest.json \
-    && dnf clean all
+# UPSide is built and validated by the Home Server Packages project. Pasiv
+# consumes only the published RPM artifact resolved to an exact digest by CI.
+FROM ${UPSIDE_PACKAGE_IMAGE} AS upside-package
 
 FROM scratch
 ARG IMAGE_REPOSITORY
@@ -77,9 +64,8 @@ LABEL org.opencontainers.image.title="Pasiv Black Box" \
       org.opencontainers.image.vendor="Highway to IT" \
       io.highwaytoit.pasiv-black-box.base-profile="minimal-plus"
 
-COPY --from=upside-builder /out/usr/share/cockpit/upside/ /usr/share/cockpit/upside/
-
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=bind,from=upside-package,source=/rpms,target=/upside-rpm \
     --mount=type=tmpfs,dst=/run \
     --mount=type=tmpfs,dst=/tmp \
     IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" \
