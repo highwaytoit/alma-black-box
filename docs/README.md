@@ -1,13 +1,13 @@
-# Alma Black Box local operator guide
+# Pasiv Black Box local operator guide
 
-This directory is installed in every Alma Black Box image at `/usr/share/alma-black-box/doc/`.
+This directory is installed in every Pasiv Black Box image at `/usr/share/pasiv-black-box/doc/`.
 
-Alma Black Box is a purpose-built bootc appliance. Host-level administration, UPS/power integration, networking, and hardware diagnostics are native. Replaceable monitoring applications are expected to run as Podman Quadlets.
+Pasiv Black Box is a purpose-built bootc appliance. Host-level administration, UPS/power integration, networking, and hardware diagnostics are native. Replaceable monitoring applications are expected to run as Podman Quadlets.
 
 Useful locations:
 
-- Local documentation: `/usr/share/alma-black-box/doc/`
-- Supplied Quadlet templates: `/usr/share/alma-black-box/quadlets/`
+- Local documentation: `/usr/share/pasiv-black-box/doc/`
+- Supplied Quadlet templates: `/usr/share/pasiv-black-box/quadlets/`
 - Active system Quadlets: `/etc/containers/systemd/`
 - NUT configuration: `/etc/ups/` or the paths provided by the installed NUT packages
 - Cockpit/UPSide assets: `/usr/share/cockpit/`
