@@ -3,7 +3,7 @@ set -ouex pipefail
 
 : "${IMAGE_REPOSITORY:?IMAGE_REPOSITORY must be set by the image build}"
 source /ctx/build_files/software.env
-: "${ALMA_BLACK_BOX_PACKAGES:?ALMA_BLACK_BOX_PACKAGES must be set}"
+: "${PASIV_BLACK_BOX_PACKAGES:?PASIV_BLACK_BOX_PACKAGES must be set}"
 : "${TAILSCALE_PACKAGE:?TAILSCALE_PACKAGE must be set}"
 : "${NETBIRD_PACKAGE:?NETBIRD_PACKAGE must be set}"
 : "${COCKPIT_WS_IMAGE:?COCKPIT_WS_IMAGE must be set}"
@@ -13,8 +13,8 @@ cp -avf /ctx/system_files/. /
 
 # Follow the Fedora CoreOS/uCore appliance-style administration model: trusted
 # administrators in wheel can use sudo without repeated password prompts.
-chown root:root /etc/sudoers.d/90-alma-black-box-passwordless-wheel
-chmod 0440 /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+chown root:root /etc/sudoers.d/90-pasiv-black-box-passwordless-wheel
+chmod 0440 /etc/sudoers.d/90-pasiv-black-box-passwordless-wheel
 
 # AlmaLinux 10.1+ enables CRB by default. EPEL software on EL10 expects the
 # CRB SELinux policy split to be available, so fail clearly if the upstream
@@ -43,7 +43,7 @@ gpgkey=https://pkgs.netbird.io/yum/repodata/repomd.xml.key
 repo_gpgcheck=1
 REPO
 
-read -r -a native_packages <<< "${ALMA_BLACK_BOX_PACKAGES}"
+read -r -a native_packages <<< "${PASIV_BLACK_BOX_PACKAGES}"
 dnf install -y "${native_packages[@]}"
 
 # Tailscale is available but remains unconfigured and disabled in the generic image.
@@ -65,22 +65,26 @@ done
 # socket/service disabled if a future dependency ever happens to pull it in.
 systemctl disable cockpit.socket cockpit.service 2>/dev/null || true
 
-# Upstream bootc auto-update units reboot after applying an update. Black Box
-# stages updates automatically but leaves the reboot under administrator control.
+# Upstream bootc auto-update units reboot after applying an update. Pasiv Black
+# Box stages updates automatically but leaves reboot timing to the administrator.
 systemctl mask bootc-fetch-apply-updates.timer bootc-fetch-apply-updates.service
-systemctl enable alma-black-box-update.timer
+systemctl enable pasiv-black-box-update.timer
 
 # Install image signature trust for future bootc updates from this repository.
 /ctx/build_files/install-image-trust.sh "${IMAGE_REPOSITORY}"
 
 # Ship local operator documentation and inactive Quadlet templates.
-install -d -m0755 /usr/share/alma-black-box/doc
-cp -avf /ctx/docs/. /usr/share/alma-black-box/doc/
+install -d -m0755 /usr/share/pasiv-black-box/doc
+cp -avf /ctx/docs/. /usr/share/pasiv-black-box/doc/
 
-install -d -m0755 /usr/share/alma-black-box/quadlets
-cp -avf /ctx/quadlets/. /usr/share/alma-black-box/quadlets/
+install -d -m0755 /usr/share/pasiv-black-box/quadlets
+cp -avf /ctx/quadlets/. /usr/share/pasiv-black-box/quadlets/
 sed -i "s|@@COCKPIT_WS_IMAGE@@|${COCKPIT_WS_IMAGE}|g" \
-    /usr/share/alma-black-box/quadlets/cockpit.container
+    /usr/share/pasiv-black-box/quadlets/cockpit.container
+
+install -d -m0755 /usr/libexec/pasiv-black-box/health
+install -m0755 /ctx/build_files/validate/identity.sh \
+    /usr/libexec/pasiv-black-box/health/identity
 
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
@@ -125,23 +129,23 @@ test -f /etc/NetworkManager/conf.d/90-systemd-resolved.conf
 grep -Fqx '[main]' /etc/NetworkManager/conf.d/90-systemd-resolved.conf
 grep -Fqx 'dns=systemd-resolved' /etc/NetworkManager/conf.d/90-systemd-resolved.conf
 
-test -f /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+test -f /usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
 grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
-    /usr/lib/tmpfiles.d/alma-black-box-resolved.conf
+    /usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
 
-test -f /etc/sudoers.d/90-alma-black-box-passwordless-wheel
+test -f /etc/sudoers.d/90-pasiv-black-box-passwordless-wheel
 grep -Fqx '%wheel ALL=(ALL) NOPASSWD: ALL' \
-    /etc/sudoers.d/90-alma-black-box-passwordless-wheel
-test "$(stat -c '%a %U %G' /etc/sudoers.d/90-alma-black-box-passwordless-wheel)" = "440 root root"
+    /etc/sudoers.d/90-pasiv-black-box-passwordless-wheel
+test "$(stat -c '%a %U %G' /etc/sudoers.d/90-pasiv-black-box-passwordless-wheel)" = "440 root root"
 visudo -cf /etc/sudoers
 
-test -f /etc/profile.d/zz-alma-black-box-prompt.sh
+test -f /etc/profile.d/zz-pasiv-black-box-prompt.sh
 
-test -f /usr/lib/systemd/system/alma-black-box-update.service
-test -f /usr/lib/systemd/system/alma-black-box-update.timer
+test -f /usr/lib/systemd/system/pasiv-black-box-update.service
+test -f /usr/lib/systemd/system/pasiv-black-box-update.timer
 test "$(systemctl is-enabled bootc-fetch-apply-updates.timer)" = "masked"
 test "$(systemctl is-enabled bootc-fetch-apply-updates.service)" = "masked"
-test "$(systemctl is-enabled alma-black-box-update.timer)" = "enabled"
+test "$(systemctl is-enabled pasiv-black-box-update.timer)" = "enabled"
 
 # nut-client can be unpacked before the main nut package creates its account,
 # which produces RPM ownership warnings during the transaction. Require the
@@ -154,9 +158,10 @@ getent group nut >/dev/null
 semodule -l >/dev/null
 
 test -f /usr/share/cockpit/upside/manifest.json
-test -f /usr/share/alma-black-box/quadlets/cockpit.container
-test -f /usr/share/alma-black-box/doc/README.md
-! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/alma-black-box/quadlets/cockpit.container
+test -f /usr/share/pasiv-black-box/quadlets/cockpit.container
+test -f /usr/share/pasiv-black-box/doc/README.md
+test -x /usr/libexec/pasiv-black-box/health/identity
+! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/pasiv-black-box/quadlets/cockpit.container
 
 # External package repositories are build-time inputs only. Keep their repo
 # definitions for provenance and future image composition, but disable them in

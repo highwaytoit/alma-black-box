@@ -1,5 +1,5 @@
 [Unit]
-Description=Check and stage Alma Black Box bootc updates daily
+Description=Check and stage Pasiv Black Box bootc updates daily
 
 [Timer]
 OnCalendar=daily

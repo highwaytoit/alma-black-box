@@ -1,7 +1,7 @@
 ARG ALMA_REPOS_IMAGE=quay.io/almalinuxorg/10-base:10
 ARG BOOTC_IMAGECTL_IMAGE=quay.io/centos-bootc/centos-bootc:stream10
 ARG ALMA_BUILDER_IMAGE=quay.io/almalinuxorg/10-kitten-base:10-kitten
-ARG IMAGE_REPOSITORY=ghcr.io/highwaytoit/alma-black-box
+ARG IMAGE_REPOSITORY=ghcr.io/highwaytoit/pasiv-black-box
 
 # Compose a fresh AlmaLinux 10 bootc root filesystem from the upstream
 # minimal-plus content tier. This follows AlmaLinux's own bootc image build
@@ -38,7 +38,7 @@ COPY --from=rootfs-builder /target-rootfs/ /
 LABEL containers.bootc=1 \
       ostree.bootable=1 \
       org.opencontainers.image.vendor="AlmaLinux OS Foundation" \
-      io.highwaytoit.alma-black-box.base-profile="minimal-plus"
+      io.highwaytoit.pasiv-black-box.base-profile="minimal-plus"
 RUN bootc container lint --fatal-warnings
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
@@ -51,7 +51,7 @@ COPY docs /docs
 COPY cosign.pub /cosign.pub
 
 # UPSide is built separately so Node.js/npm/git/build dependencies never remain
-# in the final Alma Black Box image.
+# in the final Pasiv Black Box image.
 FROM registry.fedoraproject.org/fedora:44 AS upside-builder
 COPY build_files/software.env /tmp/software.env
 RUN dnf install -y git make nodejs npm tar \
@@ -69,10 +69,11 @@ RUN dnf install -y git make nodejs npm tar \
 FROM alma-minimal-plus
 ARG IMAGE_REPOSITORY
 
-LABEL org.opencontainers.image.title="Alma Black Box" \
-      org.opencontainers.image.description="Purpose-built AlmaLinux bootc monitoring and infrastructure supervision appliance" \
-      org.opencontainers.image.source="https://github.com/highwaytoit/alma-black-box" \
-      io.highwaytoit.alma-black-box.base-profile="minimal-plus"
+LABEL org.opencontainers.image.title="Pasiv Black Box" \
+      org.opencontainers.image.description="Purpose-built AlmaLinux 10 bootc monitoring and infrastructure supervision appliance" \
+      org.opencontainers.image.source="https://github.com/highwaytoit/pasiv-black-box" \
+      org.opencontainers.image.vendor="Highway to IT" \
+      io.highwaytoit.pasiv-black-box.base-profile="minimal-plus"
 
 COPY --from=upside-builder /out/usr/share/cockpit/upside/ /usr/share/cockpit/upside/
 
@@ -82,4 +83,10 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" \
     /ctx/build_files/build.sh
 
-RUN bootc container lint --fatal-warnings
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    IMAGE_REPOSITORY="${IMAGE_REPOSITORY}" \
+    /ctx/build_files/finalize-image.sh
+
+RUN /usr/libexec/pasiv-black-box/health/identity \
+    && bootc container lint --fatal-warnings
