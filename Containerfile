@@ -51,7 +51,7 @@ RUN dnf install -y git make nodejs npm tar \
     && test "$(git rev-parse "refs/tags/${UPSIDE_VERSION}^{commit}")" = "${UPSIDE_COMMIT}" \
     && git checkout --detach "${UPSIDE_COMMIT}" \
     && make \
-    && npm audit --omit=dev --audit-level=high || true
+    && (npm audit --omit=dev --audit-level=high || true)
 RUN cd /src/upside \
     && mkdir -p /out/usr/share/cockpit/upside \
     && cp -a dist/. /out/usr/share/cockpit/upside/ \
