@@ -29,7 +29,6 @@ required = [
     'quadlets/cockpit.container',
     'build_files/finalize-image.sh',
     'build_files/validate/identity.sh',
-    'system_files/etc/hostname',
     'system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf',
     'system_files/usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf',
     'system_files/etc/sudoers.d/90-pasiv-black-box-passwordless-wheel',
@@ -54,10 +53,14 @@ for path in legacy_paths:
         raise SystemExit(f'legacy Alma Black Box path remains: {path}')
 PY2
 
+if [[ -e system_files/etc/hostname ]]; then
+    echo 'ERROR: generic Pasiv Black Box image must not bake /etc/hostname; the installer owns the hostname' >&2
+    exit 1
+fi
+
 grep -q '@@COCKPIT_WS_IMAGE@@' quadlets/cockpit.container
 grep -q 'BEGIN PUBLIC KEY' cosign.pub
 grep -q 'BEGIN PUBLIC KEY' almalinux-bootc.pub
-grep -Fqx 'pasiv-black-box' system_files/etc/hostname
 grep -Fqx 'dns=systemd-resolved' system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf
 grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
     system_files/usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
