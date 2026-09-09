@@ -13,8 +13,9 @@ Keep this attribution with the copied rule and review upstream changes before up
 
 ## UPSide
 
-UPSide is built from its upstream tagged source and pinned commit:
+UPSide is consumed as the verified `cockpit-upside` RPM published by the Home Server Project package repository:
 
+- https://github.com/home-server-project/home-server-packages
 - https://github.com/deviationist/cockpit-upside
 
-The build dependencies are used only in a separate build stage and are not copied into the final operating-system image.
+Pasiv Black Box resolves the published stable package artifact to an exact digest during its image build. UPSide source builds, tests, license handling, and package publication are owned by `home-server-packages` rather than repeated inside this repository.
