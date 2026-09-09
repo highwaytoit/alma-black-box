@@ -1,7 +1,7 @@
 # Pasiv Black Box
 
-[![Stable](https://img.shields.io/badge/channel-10-8A2BE2)](https://github.com/highwaytoit/pasiv-black-box/pkgs/container/pasiv-black-box)
-[![Testing](https://img.shields.io/badge/channel-testing-darkred)](https://github.com/highwaytoit/pasiv-black-box/pkgs/container/pasiv-black-box)
+[![stable](https://github.com/highwaytoit/pasiv-black-box/actions/workflows/build.yml/badge.svg)](https://github.com/highwaytoit/pasiv-black-box/actions/workflows/build.yml)
+[![testing](https://github.com/highwaytoit/pasiv-black-box/actions/workflows/build-testing.yml/badge.svg)](https://github.com/highwaytoit/pasiv-black-box/actions/workflows/build-testing.yml)
 
 Pasiv Black Box is a small, purpose-built bootc monitoring and infrastructure-supervision appliance built on AlmaLinux OS 10 using a minimal-plus base.
 
