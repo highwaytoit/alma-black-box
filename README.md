@@ -49,7 +49,7 @@ The host layer keeps services close to the hardware when that is useful or neces
 | Containers | Podman and systemd Quadlets |
 | Diagnostics | tcpdump, dig, traceroute, nc, iperf3 |
 
-The exact package set is defined in [`build_files/software.env`](build_files/software.env).
+The native distro package set is defined in [`build_files/software.env`](build_files/software.env). Third-party package details are maintained in [Home Server Packages](https://github.com/home-server-project/home-server-packages).
 
 ## Intentionally not included
 
@@ -188,6 +188,7 @@ Pasiv Black Box depends on and benefits from several upstream projects, includin
 - [Cockpit](https://cockpit-project.org/)
 - [Network UPS Tools](https://networkupstools.org/)
 - [UPSide](https://github.com/deviationist/cockpit-upside)
+- [Home Server Packages](https://github.com/home-server-project/home-server-packages)
 - [Tailscale](https://tailscale.com/)
 - [NetBird](https://netbird.io/)
 
