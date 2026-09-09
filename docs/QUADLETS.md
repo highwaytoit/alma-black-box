@@ -1,9 +1,9 @@
 # Supplied Quadlets
 
-Alma Black Box keeps inactive Quadlet templates under:
+Pasiv Black Box keeps inactive Quadlet templates under:
 
 ```text
-/usr/share/alma-black-box/quadlets/
+/usr/share/pasiv-black-box/quadlets/
 ```
 
 They are deliberately outside Podman's active Quadlet search directories.
@@ -14,14 +14,14 @@ Copy the desired template into `/etc/containers/systemd/`, then customize the lo
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
-sudo cp /usr/share/alma-black-box/quadlets/cockpit.container \
+sudo cp /usr/share/pasiv-black-box/quadlets/cockpit.container \
   /etc/containers/systemd/cockpit.container
 sudo micro /etc/containers/systemd/cockpit.container
 sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
 ```
 
-The copied file belongs to the local administrator. Future Alma Black Box image updates can refresh the supplied template under `/usr/share/alma-black-box/quadlets/` without overwriting the active local copy.
+The copied file belongs to the local administrator. Future Pasiv Black Box image updates can refresh the supplied template under `/usr/share/pasiv-black-box/quadlets/` without overwriting the active local copy.
 
 ## Symlink deployment
 
@@ -29,7 +29,7 @@ A supplied template can instead be symlinked into `/etc/containers/systemd/`:
 
 ```bash
 sudo mkdir -p /etc/containers/systemd
-sudo ln -s /usr/share/alma-black-box/quadlets/cockpit.container \
+sudo ln -s /usr/share/pasiv-black-box/quadlets/cockpit.container \
   /etc/containers/systemd/cockpit.container
 sudo systemctl daemon-reload
 sudo systemctl start cockpit.service
@@ -41,7 +41,7 @@ With a symlink, a future bootc image update can change the supplied template and
 
 The supplied Cockpit template follows the upstream privileged `cockpit/ws` container model, including host PID access and the host filesystem mounted at `/host`.
 
-Alma Black Box installs the native Cockpit bridge/system components and the UPSide extension. The `cockpit-ws` container supplies the browser-facing web service.
+Pasiv Black Box installs the native Cockpit bridge/system components and the UPSide extension. The `cockpit-ws` container supplies the browser-facing web service.
 
 The image permits SSH password authentication only from localhost so the Cockpit container can authenticate host users without enabling SSH password access from the network.
 
