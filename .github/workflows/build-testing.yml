@@ -23,6 +23,7 @@ env:
   ALMA_REPOS_IMAGE: quay.io/almalinuxorg/10-base:10
   BOOTC_IMAGECTL_IMAGE: quay.io/centos-bootc/centos-bootc:stream10
   ALMA_BUILDER_IMAGE: quay.io/almalinuxorg/10-kitten-base:10-kitten
+  UPSIDE_PACKAGE_IMAGE: ghcr.io/home-server-project/cockpit-upside:stable
 
 jobs:
   build:
@@ -79,14 +80,17 @@ jobs:
           repos_ref="$(resolve_ref "${ALMA_REPOS_IMAGE}")"
           imagectl_ref="$(resolve_ref "${BOOTC_IMAGECTL_IMAGE}")"
           builder_ref="$(resolve_ref "${ALMA_BUILDER_IMAGE}")"
+          upside_ref="$(resolve_ref "${UPSIDE_PACKAGE_IMAGE}")"
 
           echo "Alma repository image: ${repos_ref}"
           echo "bootc imagectl image: ${imagectl_ref}"
           echo "Alma builder image: ${builder_ref}"
+          echo "UPSide package image: ${upside_ref}"
 
           echo "repos_ref=${repos_ref}" >> "${GITHUB_OUTPUT}"
           echo "imagectl_ref=${imagectl_ref}" >> "${GITHUB_OUTPUT}"
           echo "builder_ref=${builder_ref}" >> "${GITHUB_OUTPUT}"
+          echo "upside_ref=${upside_ref}" >> "${GITHUB_OUTPUT}"
 
       - name: Build image
         shell: bash
@@ -94,6 +98,7 @@ jobs:
           ALMA_REPOS_REF: ${{ steps.inputs.outputs.repos_ref }}
           BOOTC_IMAGECTL_REF: ${{ steps.inputs.outputs.imagectl_ref }}
           ALMA_BUILDER_REF: ${{ steps.inputs.outputs.builder_ref }}
+          UPSIDE_PACKAGE_REF: ${{ steps.inputs.outputs.upside_ref }}
         run: |
           set -euo pipefail
           sudo podman build \
@@ -104,6 +109,7 @@ jobs:
             --build-arg "ALMA_REPOS_IMAGE=${ALMA_REPOS_REF}" \
             --build-arg "BOOTC_IMAGECTL_IMAGE=${BOOTC_IMAGECTL_REF}" \
             --build-arg "ALMA_BUILDER_IMAGE=${ALMA_BUILDER_REF}" \
+            --build-arg "UPSIDE_PACKAGE_IMAGE=${UPSIDE_PACKAGE_REF}" \
             --build-arg "IMAGE_REPOSITORY=${IMAGE_REPOSITORY}" \
             --label "org.opencontainers.image.revision=${TESTING_SHA}" \
             --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -177,7 +183,8 @@ jobs:
                 cockpit-system \
                 cockpit-files \
                 cockpit-podman \
-                cockpit-storaged
+                cockpit-storaged \
+                cockpit-upside
               command -v tailscale
               command -v netbird
               command -v fwupdmgr
@@ -284,6 +291,7 @@ jobs:
           REPOS_REF: ${{ steps.inputs.outputs.repos_ref }}
           IMAGECTL_REF: ${{ steps.inputs.outputs.imagectl_ref }}
           BUILDER_REF: ${{ steps.inputs.outputs.builder_ref }}
+          UPSIDE_PACKAGE_REF: ${{ steps.inputs.outputs.upside_ref }}
           RECHUNK_LAYERS: ${{ steps.rechunk.outputs.layers }}
           PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
         run: |
@@ -296,6 +304,7 @@ jobs:
             echo "- Alma repository source: ${REPOS_REF:-unknown}"
             echo "- bootc imagectl source: ${IMAGECTL_REF:-unknown}"
             echo "- Alma builder source: ${BUILDER_REF:-unknown}"
+            echo "- UPSide package source: ${UPSIDE_PACKAGE_REF:-unknown}"
             echo "- Rechunked layers: ${RECHUNK_LAYERS:-unknown} / OCI max ${OCI_LAYER_LIMIT} (RPM chunk target ${RECHUNK_MAX_LAYERS})"
             if [[ -n "${PUBLISHED_DIGEST:-}" ]]; then
               echo "- Published tag: ${IMAGE_REPOSITORY}:${CURRENT_TAG}"
