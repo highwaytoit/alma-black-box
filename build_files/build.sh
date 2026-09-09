@@ -46,6 +46,10 @@ REPO
 read -r -a native_packages <<< "${PASIV_BLACK_BOX_PACKAGES}"
 dnf install -y "${native_packages[@]}"
 
+# UPSide is built, tested, and published by Home Server Packages. CI resolves
+# the stable artifact to an exact digest before this image build starts.
+dnf install -y /upside-rpm/cockpit-upside-*.noarch.rpm
+
 # Tailscale is available but remains unconfigured and disabled in the generic image.
 dnf install -y "${TAILSCALE_PACKAGE}"
 systemctl disable tailscaled.service 2>/dev/null || true
@@ -120,7 +124,8 @@ rpm -q \
     cockpit-system \
     cockpit-files \
     cockpit-podman \
-    cockpit-storaged
+    cockpit-storaged \
+    cockpit-upside
 
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
