@@ -33,16 +33,6 @@ RUN /usr/libexec/bootc-base-imagectl build-rootfs \
     --manifest=almalinux-10-minimal-plus \
     /target-rootfs
 
-FROM scratch AS alma-minimal-plus
-COPY --from=rootfs-builder /target-rootfs/ /
-LABEL containers.bootc=1 \
-      ostree.bootable=1 \
-      org.opencontainers.image.vendor="AlmaLinux OS Foundation" \
-      io.highwaytoit.pasiv-black-box.base-profile="minimal-plus"
-RUN bootc container lint --fatal-warnings
-STOPSIGNAL SIGRTMIN+3
-CMD ["/sbin/init"]
-
 FROM scratch AS ctx
 COPY build_files /build_files
 COPY system_files /system_files
@@ -61,13 +51,25 @@ RUN dnf install -y git make nodejs npm tar \
     && test "$(git rev-parse "refs/tags/${UPSIDE_VERSION}^{commit}")" = "${UPSIDE_COMMIT}" \
     && git checkout --detach "${UPSIDE_COMMIT}" \
     && make \
+    && npm audit --omit=dev --audit-level=high || true
+RUN cd /src/upside \
     && mkdir -p /out/usr/share/cockpit/upside \
     && cp -a dist/. /out/usr/share/cockpit/upside/ \
     && test -f /out/usr/share/cockpit/upside/manifest.json \
     && dnf clean all
 
-FROM alma-minimal-plus
+FROM scratch
 ARG IMAGE_REPOSITORY
+
+COPY --from=rootfs-builder /target-rootfs/ /
+
+LABEL containers.bootc=1 \
+      ostree.bootable=1 \
+      org.opencontainers.image.vendor="AlmaLinux OS Foundation" \
+      io.highwaytoit.pasiv-black-box.base-profile="minimal-plus"
+RUN bootc container lint --fatal-warnings
+STOPSIGNAL SIGRTMIN+3
+CMD ["/sbin/init"]
 
 LABEL org.opencontainers.image.title="Pasiv Black Box" \
       org.opencontainers.image.description="Purpose-built AlmaLinux 10 bootc monitoring and infrastructure supervision appliance" \
