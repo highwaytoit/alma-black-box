@@ -29,6 +29,7 @@ required = [
     'quadlets/cockpit.container',
     'build_files/finalize-image.sh',
     'build_files/validate/identity.sh',
+    'system_files/etc/hostname',
     'system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf',
     'system_files/usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf',
     'system_files/etc/sudoers.d/90-pasiv-black-box-passwordless-wheel',
@@ -56,6 +57,7 @@ PY2
 grep -q '@@COCKPIT_WS_IMAGE@@' quadlets/cockpit.container
 grep -q 'BEGIN PUBLIC KEY' cosign.pub
 grep -q 'BEGIN PUBLIC KEY' almalinux-bootc.pub
+grep -Fqx 'pasiv-black-box' system_files/etc/hostname
 grep -Fqx 'dns=systemd-resolved' system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf
 grep -Fqx 'L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf' \
     system_files/usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
