@@ -184,8 +184,25 @@ jobs:
               command -v resolvectl
               semodule -l >/dev/null
               check_file /usr/share/cockpit/upside/manifest.json
-              check_file /usr/share/pasiv-black-box/quadlets/cockpit.container
+              for template in \
+                cockpit/cockpit.container \
+                network/pasiv-monitoring.network \
+                caddy/caddy.container \
+                authelia/authelia.container \
+                grafana/grafana.container \
+                prometheus/prometheus.container \
+                loki/loki.container \
+                alloy/alloy.container \
+                victoriametrics/victoriametrics.container \
+                alertmanager/alertmanager.container; do
+                check_file "/usr/share/pasiv-black-box/quadlets/${template}"
+              done
+              check_file /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
+              check_file /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
               check_file /usr/share/pasiv-black-box/doc/README.md
+              check_file /usr/share/pasiv-black-box/doc/QUADLETS.md
+              check_file /usr/share/pasiv-black-box/doc/QUADLET-LIBRARY.md
+              check_file /usr/share/pasiv-black-box/doc/NUT-UPSide.md
               check_file /usr/libexec/pasiv-black-box/health/identity
               check_file /usr/lib/pki/containers/highwaytoit.pub
               check_file /etc/containers/registries.d/ghcr.io-highwaytoit.yaml
