@@ -84,7 +84,7 @@ cp -avf /ctx/docs/. /usr/share/pasiv-black-box/doc/
 install -d -m0755 /usr/share/pasiv-black-box/quadlets
 cp -avf /ctx/quadlets/. /usr/share/pasiv-black-box/quadlets/
 sed -i "s|@@COCKPIT_WS_IMAGE@@|${COCKPIT_WS_IMAGE}|g" \
-    /usr/share/pasiv-black-box/quadlets/cockpit.container
+    /usr/share/pasiv-black-box/quadlets/cockpit/cockpit.container
 
 install -d -m0755 /usr/libexec/pasiv-black-box/health
 install -m0755 /ctx/build_files/validate/identity.sh \
@@ -162,11 +162,30 @@ getent group nut >/dev/null
 # composition. Require the completed policy store to remain readable.
 semodule -l >/dev/null
 
-test -f /usr/share/cockpit/upside/manifest.json
-test -f /usr/share/pasiv-black-box/quadlets/cockpit.container
+# The complete inactive Quadlet library must be present in the composed image.
+for template in \
+    cockpit/cockpit.container \
+    network/pasiv-monitoring.network \
+    caddy/caddy.container \
+    authelia/authelia.container \
+    grafana/grafana.container \
+    prometheus/prometheus.container \
+    loki/loki.container \
+    alloy/alloy.container \
+    victoriametrics/victoriametrics.container \
+    alertmanager/alertmanager.container; do
+    test -f "/usr/share/pasiv-black-box/quadlets/${template}"
+done
+
+test -f /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
+test -f /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
 test -f /usr/share/pasiv-black-box/doc/README.md
+test -f /usr/share/pasiv-black-box/doc/QUADLETS.md
+test -f /usr/share/pasiv-black-box/doc/QUADLET-LIBRARY.md
+test -f /usr/share/pasiv-black-box/doc/NUT-UPSide.md
+test -f /usr/share/cockpit/upside/manifest.json
 test -x /usr/libexec/pasiv-black-box/health/identity
-! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/pasiv-black-box/quadlets/cockpit.container
+! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/pasiv-black-box/quadlets/cockpit/cockpit.container
 
 # External package repositories are build-time inputs only. Keep their repo
 # definitions for provenance and future image composition, but disable them in

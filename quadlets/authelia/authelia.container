@@ -1,0 +1,23 @@
+[Unit]
+Description=Authelia authentication service for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/authelia
+
+[Container]
+Image=docker.io/authelia/authelia:latest
+ContainerName=authelia
+Network=pasiv-monitoring.network
+NetworkAlias=authelia
+EnvironmentFile=/etc/pasiv-black-box/authelia/authelia.env
+Volume=/etc/pasiv-black-box/authelia/config:/config:ro,Z
+Volume=/etc/pasiv-black-box/authelia/secrets:/secrets:ro,Z
+Volume=/var/mnt/monitoring/authelia:/data:Z
+PublishPort=127.0.0.1:9091:9091/tcp
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

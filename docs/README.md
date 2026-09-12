@@ -15,6 +15,10 @@ Useful locations:
 
 Nothing in the supplied Quadlet template library is active merely because the image contains it.
 
-The recommended deployment model is to copy the desired template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched. Symlinking directly to a supplied template is possible but means future image updates can change the active service definition.
+The recommended deployment model is to copy the desired template into `/etc/containers/systemd/`, customize the local copy, and leave the image-supplied template untouched.
 
-See `QUADLETS.md` for Quadlet deployment guidance and `NUT-UPSide.md` for UPS integration notes.
+## Documentation index
+
+- [Quadlet deployment guidance](QUADLETS.md)
+- [Quadlet library index](QUADLET-LIBRARY.md)
+- [NUT and UPSide integration](NUT-UPSide.md)

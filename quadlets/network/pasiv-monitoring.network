@@ -1,0 +1,10 @@
+# Pasiv Black Box supplied Quadlet template.
+# Shared private bridge network for monitoring applications.
+# Copy to /etc/containers/systemd/ only if you want to activate it locally.
+
+[Unit]
+Description=Pasiv Black Box private monitoring network
+
+[Network]
+NetworkName=pasiv-monitoring
+Driver=bridge

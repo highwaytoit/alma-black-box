@@ -1,0 +1,20 @@
+[Unit]
+Description=VictoriaMetrics for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/victoriametrics
+
+[Container]
+Image=docker.io/victoriametrics/victoria-metrics:latest
+ContainerName=victoriametrics
+Network=pasiv-monitoring.network
+NetworkAlias=victoriametrics
+Volume=/var/mnt/monitoring/victoriametrics:/victoria-metrics-data:Z
+Exec=-storageDataPath=/victoria-metrics-data -httpListenAddr=:8428
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

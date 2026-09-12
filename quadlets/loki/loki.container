@@ -1,0 +1,21 @@
+[Unit]
+Description=Loki for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/loki
+
+[Container]
+Image=docker.io/grafana/loki:latest
+ContainerName=loki
+Network=pasiv-monitoring.network
+NetworkAlias=loki
+Volume=/etc/pasiv-black-box/loki/loki.yml:/etc/loki/local-config.yaml:ro,Z
+Volume=/var/mnt/monitoring/loki:/loki:Z
+Exec=-config.file=/etc/loki/local-config.yaml
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

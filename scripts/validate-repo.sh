@@ -26,7 +26,32 @@ required = [
     'README.md',
     'cosign.pub',
     'almalinux-bootc.pub',
-    'quadlets/cockpit.container',
+    'docs/README.md',
+    'docs/QUADLETS.md',
+    'docs/QUADLET-LIBRARY.md',
+    'docs/NUT-UPSide.md',
+    'quadlets/cockpit/cockpit.container',
+    'quadlets/cockpit/docs/COCKPIT.md',
+    'quadlets/network/pasiv-monitoring.network',
+    'quadlets/network/docs/NETWORK.md',
+    'quadlets/caddy/caddy.container',
+    'quadlets/caddy/docs/CADDY.md',
+    'quadlets/authelia/authelia.container',
+    'quadlets/authelia/docs/AUTHELIA.md',
+    'quadlets/grafana/grafana.container',
+    'quadlets/grafana/docs/GRAFANA.md',
+    'quadlets/prometheus/prometheus.container',
+    'quadlets/prometheus/examples/prometheus.yml',
+    'quadlets/prometheus/docs/PROMETHEUS.md',
+    'quadlets/loki/loki.container',
+    'quadlets/loki/docs/LOKI.md',
+    'quadlets/alloy/alloy.container',
+    'quadlets/alloy/docs/ALLOY.md',
+    'quadlets/victoriametrics/victoriametrics.container',
+    'quadlets/victoriametrics/docs/VICTORIAMETRICS.md',
+    'quadlets/alertmanager/alertmanager.container',
+    'quadlets/alertmanager/examples/alertmanager.yml',
+    'quadlets/alertmanager/docs/ALERTMANAGER.md',
     'build_files/finalize-image.sh',
     'build_files/validate/identity.sh',
     'system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf',
@@ -42,6 +67,7 @@ for path in required:
         raise SystemExit(f'missing required file: {path}')
 
 legacy_paths = [
+    'quadlets/cockpit.container',
     'system_files/usr/lib/tmpfiles.d/alma-black-box-resolved.conf',
     'system_files/etc/sudoers.d/90-alma-black-box-passwordless-wheel',
     'system_files/etc/profile.d/zz-alma-black-box-prompt.sh',
@@ -50,7 +76,7 @@ legacy_paths = [
 ]
 for path in legacy_paths:
     if Path(path).exists():
-        raise SystemExit(f'legacy Alma Black Box path remains: {path}')
+        raise SystemExit(f'legacy path remains: {path}')
 PY2
 
 if [[ -e system_files/etc/hostname ]]; then
@@ -58,7 +84,7 @@ if [[ -e system_files/etc/hostname ]]; then
     exit 1
 fi
 
-grep -q '@@COCKPIT_WS_IMAGE@@' quadlets/cockpit.container
+grep -q '@@COCKPIT_WS_IMAGE@@' quadlets/cockpit/cockpit.container
 grep -q 'BEGIN PUBLIC KEY' cosign.pub
 grep -q 'BEGIN PUBLIC KEY' almalinux-bootc.pub
 grep -Fqx 'dns=systemd-resolved' system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf
@@ -70,6 +96,19 @@ grep -Fq 'ghcr.io/${{ github.repository_owner }}/pasiv-black-box' .github/workfl
 grep -Fq 'ghcr.io/${{ github.repository_owner }}/pasiv-black-box' .github/workflows/build-testing.yml
 grep -Fq 'ARG IMAGE_REPOSITORY=ghcr.io/highwaytoit/pasiv-black-box' Containerfile
 grep -Fq 'PASIV_BLACK_BOX_PACKAGES=' build_files/software.env
+
+# Product-specific legacy names must not return in the public library. Genuine
+# AlmaLinux upstream/base references elsewhere in the repository are expected.
+if grep -RInE 'Alma Black Box|alma-black-box|alma-monitoring' docs quadlets; then
+    echo 'ERROR: legacy product/network name remains in docs or Quadlet library' >&2
+    exit 1
+fi
+
+# Site-specific deployment values do not belong in the reusable public library.
+if grep -RIn 'highwaytoit\.com' docs quadlets; then
+    echo 'ERROR: site-specific domain remains in docs or Quadlet library' >&2
+    exit 1
+fi
 
 # The prompt shape/color is intentionally unchanged; only the product-specific
 # filename/comment moved from Alma Black Box to Pasiv Black Box.

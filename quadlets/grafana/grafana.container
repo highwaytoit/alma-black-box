@@ -1,0 +1,20 @@
+[Unit]
+Description=Grafana for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/grafana
+
+[Container]
+Image=docker.io/grafana/grafana:latest
+ContainerName=grafana
+Network=pasiv-monitoring.network
+NetworkAlias=grafana
+EnvironmentFile=/etc/pasiv-black-box/grafana/grafana.env
+Volume=/var/mnt/monitoring/grafana:/var/lib/grafana:Z
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

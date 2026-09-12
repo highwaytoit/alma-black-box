@@ -1,0 +1,21 @@
+[Unit]
+Description=Prometheus for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/prometheus
+
+[Container]
+Image=docker.io/prom/prometheus:latest
+ContainerName=prometheus
+Network=pasiv-monitoring.network
+NetworkAlias=prometheus
+Volume=/etc/pasiv-black-box/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro,Z
+Volume=/etc/pasiv-black-box/prometheus/rules:/etc/prometheus/rules:ro,Z
+Volume=/var/mnt/monitoring/prometheus:/prometheus:Z
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

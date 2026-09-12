@@ -1,0 +1,21 @@
+[Unit]
+Description=Alertmanager for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/alertmanager
+
+[Container]
+Image=docker.io/prom/alertmanager:latest
+ContainerName=alertmanager
+Network=pasiv-monitoring.network
+NetworkAlias=alertmanager
+Volume=/etc/pasiv-black-box/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro,Z
+Volume=/etc/pasiv-black-box/alertmanager/secrets/telegram-bot-token:/run/secrets/telegram-bot-token:ro,Z
+Volume=/var/mnt/monitoring/alertmanager:/alertmanager:Z
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

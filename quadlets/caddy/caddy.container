@@ -1,0 +1,30 @@
+# Pasiv Black Box supplied Quadlet template.
+# Caddy reverse proxy with Cloudflare DNS-01 support.
+# Copy and customize before activation.
+
+[Unit]
+Description=Caddy reverse proxy for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/var/mnt/monitoring/caddy
+
+[Container]
+Image=ghcr.io/highwaytoit/caddy-cloudflare-build:latest
+ContainerName=caddy
+Network=pasiv-monitoring.network
+NetworkAlias=caddy
+EnvironmentFile=/etc/pasiv-black-box/caddy/caddy.env
+Volume=/etc/pasiv-black-box/caddy/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+Volume=/var/mnt/monitoring/caddy/data:/data:Z
+Volume=/var/mnt/monitoring/caddy/config:/config:Z
+
+# Tailscale-only example. Replace this address before activation.
+PublishPort=100.64.0.10:8443:443/tcp
+PublishPort=100.64.0.10:8443:443/udp
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
