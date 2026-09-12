@@ -46,6 +46,42 @@ REPO
 read -r -a native_packages <<< "${PASIV_BLACK_BOX_PACKAGES}"
 dnf install -y "${native_packages[@]}"
 
+# EL10 bootc keeps vendor groups in /usr/lib/group while systemd-sysusers writes
+# supplementary memberships to /etc/gshadow.  NUT's runtime directories are
+# root:dialout 0770, so the nut service account must carry the package-declared
+# tty and dialout memberships in the image-managed group database itself.
+for group_name in tty dialout; do
+    grep -q "^${group_name}:" /usr/lib/group
+ done
+awk -F: -v OFS=: '
+$1 == "tty" || $1 == "dialout" {
+    count = split($4, members, ",")
+    found = 0
+    for (i = 1; i <= count; i++) {
+        if (members[i] == "nut")
+            found = 1
+    }
+    if (!found)
+        $4 = ($4 == "" ? "nut" : $4 ",nut")
+}
+{ print }
+' /usr/lib/group > /tmp/pasiv-group
+install -o root -g root -m0644 /tmp/pasiv-group /usr/lib/group
+rm -f /tmp/pasiv-group
+
+# NUT ships these files as root:nut 0640. Preserve those permissions in the
+# vendor /etc payload so upsd can read them after a fresh bootc deployment.
+for nut_file in /etc/ups/upsd.conf /etc/ups/upsd.users; do
+    test -f "${nut_file}"
+    chown root:nut "${nut_file}"
+    chmod 0640 "${nut_file}"
+done
+
+# PCP provides UPSide's optional historical trends. Keep the focused PCP +
+# OpenMetrics set rather than the broader pcp-zeroconf bundle, and explicitly
+# enable the two services UPSide needs for history collection.
+systemctl enable pmcd.service pmlogger.service
+
 # UPSide is built, tested, and published by Home Server Packages. CI resolves
 # the stable artifact to an exact digest before this image build starts.
 dnf install -y /upside-rpm/cockpit-upside-*.noarch.rpm
@@ -93,7 +129,7 @@ install -m0755 /ctx/build_files/validate/identity.sh \
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
     bootc podman nmcli nmtui firewall-cmd sshd sudo visudo \
-    upsc nut-scanner \
+    upsc nut-scanner pmcd pmlogger pminfo \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
     btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 \
@@ -122,6 +158,8 @@ rpm -q \
     qemu-guest-agent \
     zram-generator \
     libusb1-devel \
+    pcp \
+    pcp-pmda-openmetrics \
     net-snmp-utils \
     selinux-policy-extra \
     cockpit-system \
@@ -131,6 +169,11 @@ rpm -q \
     cockpit-upside
 
 test -e /usr/lib64/libusb-1.0.so
+
+test -x /usr/libexec/pcp/pmdas/openmetrics/Install
+test -f /usr/lib/tmpfiles.d/pcp-pmda-openmetrics.conf
+test "$(systemctl is-enabled pmcd.service)" = "enabled"
+test "$(systemctl is-enabled pmlogger.service)" = "enabled"
 
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
@@ -159,9 +202,14 @@ test "$(systemctl is-enabled pasiv-black-box-update.timer)" = "enabled"
 
 # nut-client can be unpacked before the main nut package creates its account,
 # which produces RPM ownership warnings during the transaction. Require the
-# completed image to contain the intended NUT user and group.
+# completed image to contain the intended NUT user/group state and secure files.
 getent passwd nut >/dev/null
 getent group nut >/dev/null
+for group_name in tty dialout; do
+    id -nG nut | tr ' ' '\n' | grep -Fxq "${group_name}"
+done
+test "$(stat -c '%a %U %G' /etc/ups/upsd.conf)" = "640 root nut"
+test "$(stat -c '%a %U %G' /etc/ups/upsd.users)" = "640 root nut"
 
 # EL10 SELinux policy RPM scriptlets may emit transaction warnings during bootc
 # composition. Require the completed policy store to remain readable.
@@ -223,13 +271,17 @@ fi
 
 # Services which define the host itself remain available. Remote-access clients,
 # UPS behavior, Cockpit web service, and monitoring applications require explicit
-# administrator activation/configuration.
+# administrator activation/configuration. PCP is host-native telemetry support
+# for UPSide history, so its collection services are enabled by the image.
 systemctl enable NetworkManager.service 2>/dev/null || true
 systemctl enable systemd-resolved.service
 systemctl enable firewalld.service 2>/dev/null || true
 systemctl enable sshd.service 2>/dev/null || true
+systemctl enable pmcd.service pmlogger.service
 
 test "$(systemctl is-enabled systemd-resolved.service)" = "enabled"
+test "$(systemctl is-enabled pmcd.service)" = "enabled"
+test "$(systemctl is-enabled pmlogger.service)" = "enabled"
 
 # bootc images must not carry build-time package-manager/runtime state in /var.
 # Alma's own atomic image derivatives clean /var after composition. Keep the
