@@ -11,6 +11,7 @@ The image ships a reusable library of inactive system Quadlet templates under `/
 | Grafana | `grafana/grafana.container` | `grafana/docs/GRAFANA.md` | documented local env file |
 | Prometheus | `prometheus/prometheus.container` | `prometheus/docs/PROMETHEUS.md` | `prometheus/examples/prometheus.yml` |
 | Blackbox Exporter | `blackbox-exporter/blackbox-exporter.container` | `blackbox-exporter/docs/BLACKBOX-EXPORTER.md` | `blackbox-exporter/examples/blackbox.yml` |
+| SNMP Exporter | `snmp-exporter/snmp-exporter.container` | `snmp-exporter/docs/SNMP-EXPORTER.md` | `snmp-exporter/examples/snmp-auth.yml` + `snmp.env.example` |
 | Loki | `loki/loki.container` | `loki/docs/LOKI.md` | documented local config |
 | Grafana Alloy | `alloy/alloy.container` | `alloy/docs/ALLOY.md` | documented local config |
 | VictoriaMetrics | `victoriametrics/victoriametrics.container` | `victoriametrics/docs/VICTORIAMETRICS.md` | - |
@@ -30,5 +31,7 @@ The monitoring application templates in this library were derived from configura
 Cockpit has also been explicitly revalidated on physical Pasiv Black Box hardware with the supplied Quadlet unchanged, including local-SSH authentication, administrative access, Files, Podman, Storage, UPSide, Terminal, and automatic recovery after a host reboot.
 
 Blackbox Exporter has been explicitly validated on physical Pasiv Black Box hardware with HTTP/HTTPS, TCP, ICMP, and DNS probes, Prometheus integration over the private monitoring network, and automatic recovery after a full host reboot.
+
+SNMP Exporter has been explicitly validated on physical Pasiv Black Box hardware with SNMPv3 `authPriv`, the upstream `system`, `if_mib`, and `mikrotik` modules, Prometheus integration over the private monitoring network, exporter restart recovery, and automatic recovery after a full host reboot.
 
 The library is intentionally modular so individual service directories can later be moved to a shared repository without changing their internal layout.

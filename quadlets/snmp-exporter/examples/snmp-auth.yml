@@ -1,0 +1,9 @@
+auths:
+  monitoring_v3:
+    version: 3
+    username: monitoring-snmp
+    security_level: authPriv
+    password: ${SNMP_AUTH_PASSWORD}
+    auth_protocol: SHA
+    priv_protocol: AES
+    priv_password: ${SNMP_PRIV_PASSWORD}

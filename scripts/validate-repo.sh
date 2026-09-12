@@ -46,6 +46,10 @@ required = [
     'quadlets/blackbox-exporter/blackbox-exporter.container',
     'quadlets/blackbox-exporter/examples/blackbox.yml',
     'quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md',
+    'quadlets/snmp-exporter/snmp-exporter.container',
+    'quadlets/snmp-exporter/examples/snmp-auth.yml',
+    'quadlets/snmp-exporter/examples/snmp.env.example',
+    'quadlets/snmp-exporter/docs/SNMP-EXPORTER.md',
     'quadlets/loki/loki.container',
     'quadlets/loki/docs/LOKI.md',
     'quadlets/alloy/alloy.container',
@@ -99,6 +103,7 @@ grep -Fq 'ghcr.io/${{ github.repository_owner }}/pasiv-black-box' .github/workfl
 grep -Fq 'ghcr.io/${{ github.repository_owner }}/pasiv-black-box' .github/workflows/build-testing.yml
 grep -Fq 'ARG IMAGE_REPOSITORY=ghcr.io/highwaytoit/pasiv-black-box' Containerfile
 grep -Fq 'PASIV_BLACK_BOX_PACKAGES=' build_files/software.env
+grep -Fq 'net-snmp-utils' build_files/software.env
 
 # Product-specific legacy names must not return in the public library. Genuine
 # AlmaLinux upstream/base references elsewhere in the repository are expected.

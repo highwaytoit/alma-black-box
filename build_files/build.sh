@@ -97,6 +97,7 @@ for cmd in \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
     btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 \
+    snmpget snmpwalk \
     openssl curl lsof file unzip semanage \
     cockpit-bridge resolvectl; do
     command -v "${cmd}"
@@ -120,6 +121,7 @@ rpm -q \
     realtek-firmware \
     qemu-guest-agent \
     zram-generator \
+    net-snmp-utils \
     selinux-policy-extra \
     cockpit-system \
     cockpit-files \
@@ -171,6 +173,7 @@ for template in \
     grafana/grafana.container \
     prometheus/prometheus.container \
     blackbox-exporter/blackbox-exporter.container \
+    snmp-exporter/snmp-exporter.container \
     loki/loki.container \
     alloy/alloy.container \
     victoriametrics/victoriametrics.container \
@@ -181,6 +184,9 @@ done
 test -f /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
 test -f /usr/share/pasiv-black-box/quadlets/blackbox-exporter/examples/blackbox.yml
 test -f /usr/share/pasiv-black-box/quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md
+test -f /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp-auth.yml
+test -f /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp.env.example
+test -f /usr/share/pasiv-black-box/quadlets/snmp-exporter/docs/SNMP-EXPORTER.md
 test -f /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
 test -f /usr/share/pasiv-black-box/doc/README.md
 test -f /usr/share/pasiv-black-box/doc/QUADLETS.md

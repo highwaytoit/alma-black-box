@@ -1,0 +1,20 @@
+[Unit]
+Description=SNMP Exporter for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=quay.io/prometheus/snmp-exporter:latest
+ContainerName=snmp-exporter
+Network=pasiv-monitoring.network
+NetworkAlias=snmp-exporter
+EnvironmentFile=/etc/pasiv-black-box/snmp-exporter/snmp.env
+Volume=/etc/pasiv-black-box/snmp-exporter/snmp-auth.yml:/config/snmp-auth.yml:ro,Z
+Exec=--config.file=/etc/snmp_exporter/snmp.yml --config.file=/config/snmp-auth.yml --config.expand-environment-variables
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

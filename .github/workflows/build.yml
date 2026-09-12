@@ -169,6 +169,7 @@ jobs:
                 qemu-guest-agent \
                 nut \
                 nut-client \
+                net-snmp-utils \
                 selinux-policy-extra \
                 smartmontools-selinux \
                 cockpit-system \
@@ -182,6 +183,8 @@ jobs:
               command -v smartctl
               command -v micro
               command -v resolvectl
+              command -v snmpget
+              command -v snmpwalk
               semodule -l >/dev/null
               check_file /usr/share/cockpit/upside/manifest.json
               for template in \
@@ -192,6 +195,7 @@ jobs:
                 grafana/grafana.container \
                 prometheus/prometheus.container \
                 blackbox-exporter/blackbox-exporter.container \
+                snmp-exporter/snmp-exporter.container \
                 loki/loki.container \
                 alloy/alloy.container \
                 victoriametrics/victoriametrics.container \
@@ -201,6 +205,9 @@ jobs:
               check_file /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
               check_file /usr/share/pasiv-black-box/quadlets/blackbox-exporter/examples/blackbox.yml
               check_file /usr/share/pasiv-black-box/quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md
+              check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp-auth.yml
+              check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp.env.example
+              check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/docs/SNMP-EXPORTER.md
               check_file /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
               check_file /usr/share/pasiv-black-box/doc/README.md
               check_file /usr/share/pasiv-black-box/doc/QUADLETS.md
