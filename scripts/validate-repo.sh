@@ -43,6 +43,9 @@ required = [
     'quadlets/prometheus/prometheus.container',
     'quadlets/prometheus/examples/prometheus.yml',
     'quadlets/prometheus/docs/PROMETHEUS.md',
+    'quadlets/blackbox-exporter/blackbox-exporter.container',
+    'quadlets/blackbox-exporter/examples/blackbox.yml',
+    'quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md',
     'quadlets/loki/loki.container',
     'quadlets/loki/docs/LOKI.md',
     'quadlets/alloy/alloy.container',
@@ -105,7 +108,7 @@ if grep -RInE 'Alma Black Box|alma-black-box|alma-monitoring' docs quadlets; the
 fi
 
 # Site-specific deployment values do not belong in the reusable public library.
-if grep -RIn 'highwaytoit\.com' docs quadlets; then
+if grep -RIn 'highwaytoit\\.com' docs quadlets; then
     echo 'ERROR: site-specific domain remains in docs or Quadlet library' >&2
     exit 1
 fi

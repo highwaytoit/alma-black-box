@@ -200,6 +200,7 @@ jobs:
                 authelia/authelia.container \
                 grafana/grafana.container \
                 prometheus/prometheus.container \
+                blackbox-exporter/blackbox-exporter.container \
                 loki/loki.container \
                 alloy/alloy.container \
                 victoriametrics/victoriametrics.container \
@@ -207,6 +208,8 @@ jobs:
                 check_file "/usr/share/pasiv-black-box/quadlets/${template}"
               done
               check_file /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
+              check_file /usr/share/pasiv-black-box/quadlets/blackbox-exporter/examples/blackbox.yml
+              check_file /usr/share/pasiv-black-box/quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md
               check_file /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
               check_file /usr/share/pasiv-black-box/doc/README.md
               check_file /usr/share/pasiv-black-box/doc/QUADLETS.md

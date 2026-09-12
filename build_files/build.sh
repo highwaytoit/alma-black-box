@@ -170,6 +170,7 @@ for template in \
     authelia/authelia.container \
     grafana/grafana.container \
     prometheus/prometheus.container \
+    blackbox-exporter/blackbox-exporter.container \
     loki/loki.container \
     alloy/alloy.container \
     victoriametrics/victoriametrics.container \
@@ -178,6 +179,8 @@ for template in \
 done
 
 test -f /usr/share/pasiv-black-box/quadlets/prometheus/examples/prometheus.yml
+test -f /usr/share/pasiv-black-box/quadlets/blackbox-exporter/examples/blackbox.yml
+test -f /usr/share/pasiv-black-box/quadlets/blackbox-exporter/docs/BLACKBOX-EXPORTER.md
 test -f /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
 test -f /usr/share/pasiv-black-box/doc/README.md
 test -f /usr/share/pasiv-black-box/doc/QUADLETS.md

@@ -1,0 +1,22 @@
+# Pasiv Black Box supplied Quadlet template.
+# Recommended: copy this file into /etc/containers/systemd/ and customize the local copy.
+
+[Unit]
+Description=Blackbox Exporter for Pasiv Black Box
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=quay.io/prometheus/blackbox-exporter:latest
+ContainerName=blackbox-exporter
+Network=pasiv-monitoring.network
+NetworkAlias=blackbox-exporter
+Volume=/etc/pasiv-black-box/blackbox-exporter/blackbox.yml:/config/blackbox.yml:ro,Z
+Exec=--config.file=/config/blackbox.yml
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
