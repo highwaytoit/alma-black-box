@@ -1,0 +1,4 @@
+- job_name: node-exporter
+  static_configs:
+    - targets:
+        - "@@NODE_EXPORTER_LISTEN_ADDRESS@@:9100"

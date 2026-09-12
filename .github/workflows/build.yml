@@ -196,6 +196,7 @@ jobs:
                 prometheus/prometheus.container \
                 blackbox-exporter/blackbox-exporter.container \
                 snmp-exporter/snmp-exporter.container \
+                node-exporter/node-exporter.container \
                 loki/loki.container \
                 alloy/alloy.container \
                 victoriametrics/victoriametrics.container \
@@ -208,6 +209,8 @@ jobs:
               check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp-auth.yml
               check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp.env.example
               check_file /usr/share/pasiv-black-box/quadlets/snmp-exporter/docs/SNMP-EXPORTER.md
+              check_file /usr/share/pasiv-black-box/quadlets/node-exporter/examples/prometheus-job.yml
+              check_file /usr/share/pasiv-black-box/quadlets/node-exporter/docs/NODE-EXPORTER.md
               check_file /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
               check_file /usr/share/pasiv-black-box/doc/README.md
               check_file /usr/share/pasiv-black-box/doc/QUADLETS.md
@@ -219,6 +222,8 @@ jobs:
               check_file /etc/systemd/zram-generator.conf
               check_file /etc/NetworkManager/conf.d/90-systemd-resolved.conf
               check_file /usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
+              grep -Fq "@@NODE_EXPORTER_LISTEN_ADDRESS@@" /usr/share/pasiv-black-box/quadlets/node-exporter/node-exporter.container
+              grep -Fq "@@NODE_EXPORTER_LISTEN_ADDRESS@@" /usr/share/pasiv-black-box/quadlets/node-exporter/examples/prometheus-job.yml
               grep -Fqx "dns=systemd-resolved" /etc/NetworkManager/conf.d/90-systemd-resolved.conf
               grep -Fqx "L+ /etc/resolv.conf - - - - /run/systemd/resolve/stub-resolv.conf" /usr/lib/tmpfiles.d/pasiv-black-box-resolved.conf
               test "$(systemctl is-enabled systemd-resolved.service)" = "enabled"

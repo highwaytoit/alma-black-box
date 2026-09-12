@@ -1,0 +1,22 @@
+[Unit]
+Description=Node Exporter for Pasiv Black Box
+Requires=pasiv-monitoring-network.service
+After=pasiv-monitoring-network.service
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=quay.io/prometheus/node-exporter:latest
+ContainerName=node-exporter
+Network=host
+PodmanArgs=--pid=host
+Volume=/:/host:ro,rslave
+SecurityLabelDisable=true
+Exec=--path.rootfs=/host --path.udev.data=/host/run/udev/data --web.listen-address=@@NODE_EXPORTER_LISTEN_ADDRESS@@:9100
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

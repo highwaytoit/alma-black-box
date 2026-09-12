@@ -50,6 +50,9 @@ required = [
     'quadlets/snmp-exporter/examples/snmp-auth.yml',
     'quadlets/snmp-exporter/examples/snmp.env.example',
     'quadlets/snmp-exporter/docs/SNMP-EXPORTER.md',
+    'quadlets/node-exporter/node-exporter.container',
+    'quadlets/node-exporter/examples/prometheus-job.yml',
+    'quadlets/node-exporter/docs/NODE-EXPORTER.md',
     'quadlets/loki/loki.container',
     'quadlets/loki/docs/LOKI.md',
     'quadlets/alloy/alloy.container',
@@ -92,6 +95,8 @@ if [[ -e system_files/etc/hostname ]]; then
 fi
 
 grep -q '@@COCKPIT_WS_IMAGE@@' quadlets/cockpit/cockpit.container
+grep -Fq '@@NODE_EXPORTER_LISTEN_ADDRESS@@' quadlets/node-exporter/node-exporter.container
+grep -Fq '@@NODE_EXPORTER_LISTEN_ADDRESS@@' quadlets/node-exporter/examples/prometheus-job.yml
 grep -q 'BEGIN PUBLIC KEY' cosign.pub
 grep -q 'BEGIN PUBLIC KEY' almalinux-bootc.pub
 grep -Fqx 'dns=systemd-resolved' system_files/etc/NetworkManager/conf.d/90-systemd-resolved.conf
@@ -115,6 +120,12 @@ fi
 # Site-specific deployment values do not belong in the reusable public library.
 if grep -RIn 'highwaytoit\\.com' docs quadlets; then
     echo 'ERROR: site-specific domain remains in docs or Quadlet library' >&2
+    exit 1
+fi
+
+# Known real deployment addresses must never be copied into the public library.
+if grep -RInE '192\.168\.0\.(1|51)|100\.120\.140\.40|10\.89\.1\.1' docs quadlets; then
+    echo 'ERROR: site-specific address remains in docs or Quadlet library' >&2
     exit 1
 fi
 
