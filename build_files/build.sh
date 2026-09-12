@@ -121,6 +121,7 @@ rpm -q \
     realtek-firmware \
     qemu-guest-agent \
     zram-generator \
+    libusb1-devel \
     net-snmp-utils \
     selinux-policy-extra \
     cockpit-system \
@@ -128,6 +129,8 @@ rpm -q \
     cockpit-podman \
     cockpit-storaged \
     cockpit-upside
+
+test -e /usr/lib64/libusb-1.0.so
 
 test -f /etc/systemd/zram-generator.conf
 grep -Fqx '[zram0]' /etc/systemd/zram-generator.conf
