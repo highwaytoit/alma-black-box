@@ -13,6 +13,7 @@ The image ships a reusable library of inactive system Quadlet templates under `/
 | Blackbox Exporter | `blackbox-exporter/blackbox-exporter.container` | `blackbox-exporter/docs/BLACKBOX-EXPORTER.md` | `blackbox-exporter/examples/blackbox.yml` |
 | SNMP Exporter | `snmp-exporter/snmp-exporter.container` | `snmp-exporter/docs/SNMP-EXPORTER.md` | `snmp-exporter/examples/snmp-auth.yml` + `snmp.env.example` |
 | Node Exporter | `node-exporter/node-exporter.container` | `node-exporter/docs/NODE-EXPORTER.md` | `node-exporter/examples/prometheus-job.yml` |
+| NUT Exporter | `nut-exporter/nut-exporter.container` | `nut-exporter/docs/NUT-EXPORTER.md` | `nut-exporter/examples/prometheus-job.yml` |
 | Loki | `loki/loki.container` | `loki/docs/LOKI.md` | documented local config |
 | Grafana Alloy | `alloy/alloy.container` | `alloy/docs/ALLOY.md` | documented local config |
 | VictoriaMetrics | `victoriametrics/victoriametrics.container` | `victoriametrics/docs/VICTORIAMETRICS.md` | - |
@@ -36,5 +37,7 @@ Blackbox Exporter has been explicitly validated on physical Pasiv Black Box hard
 SNMP Exporter has been explicitly validated on physical Pasiv Black Box hardware with SNMPv3 `authPriv`, the upstream `system`, `if_mib`, and `mikrotik` modules, Prometheus integration over the private monitoring network, exporter restart recovery, and automatic recovery after a full host reboot.
 
 Node Exporter has been explicitly validated on physical Pasiv Black Box hardware with host CPU, memory, filesystems, disk I/O and udev metadata, network counters, hardware temperatures, Prometheus integration over a private host-bridge listener, exporter restart recovery, and automatic recovery after a full host reboot.
+
+NUT Exporter has been explicitly validated on physical Pasiv Black Box hardware against a local NUT server, including battery, runtime, voltage, load, and status metrics; private host-bridge binding; Prometheus and VictoriaMetrics integration; hardware-identity metadata disabled; and automatic recovery of the complete metrics path after a full host reboot.
 
 The library is intentionally modular so individual service directories can later be moved to a shared repository without changing their internal layout.
