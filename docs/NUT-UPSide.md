@@ -59,4 +59,23 @@ After=network-online.target
 
 This preserves explicit NUT listener configuration while ensuring `upsd` starts only after the host network is considered online.
 
+## UPSide history requirements
+
+UPSide historical charts use Performance Co-Pilot (PCP). Pasiv Black Box includes the focused package set required for this integration:
+
+- `pcp`
+- `pcp-pmda-openmetrics`
+- `pcp-system-tools`
+
+`pcp-system-tools` is required because UPSide reads local PCP archives with `pmrep`.
+
+The OpenMetrics PMDA must also be registered before UPSide can configure NUT history. On AlmaLinux this can be done with:
+
+```bash
+cd /var/lib/pcp/pmdas/openmetrics
+sudo ./Install
+```
+
+After registration, UPSide can install its NUT OpenMetrics scraper and the pmlogger rule from the History collection settings page.
+
 Do not publish deployment-specific UPS serial numbers, NUT credentials, private addresses, or site topology in reusable configuration examples.
