@@ -233,6 +233,7 @@ for template in \
     blackbox-exporter/blackbox-exporter.container \
     snmp-exporter/snmp-exporter.container \
     node-exporter/node-exporter.container \
+    nut-exporter/nut-exporter.container \
     loki/loki.container \
     alloy/alloy.container \
     victoriametrics/victoriametrics.container \
@@ -248,6 +249,8 @@ test -f /usr/share/pasiv-black-box/quadlets/snmp-exporter/examples/snmp.env.exam
 test -f /usr/share/pasiv-black-box/quadlets/snmp-exporter/docs/SNMP-EXPORTER.md
 test -f /usr/share/pasiv-black-box/quadlets/node-exporter/examples/prometheus-job.yml
 test -f /usr/share/pasiv-black-box/quadlets/node-exporter/docs/NODE-EXPORTER.md
+test -f /usr/share/pasiv-black-box/quadlets/nut-exporter/examples/prometheus-job.yml
+test -f /usr/share/pasiv-black-box/quadlets/nut-exporter/docs/NUT-EXPORTER.md
 test -f /usr/share/pasiv-black-box/quadlets/alertmanager/examples/alertmanager.yml
 test -f /usr/share/pasiv-black-box/doc/README.md
 test -f /usr/share/pasiv-black-box/doc/QUADLETS.md
@@ -257,6 +260,9 @@ test -f /usr/share/cockpit/upside/manifest.json
 test -x /usr/libexec/pasiv-black-box/health/identity
 ! grep -q '@@COCKPIT_WS_IMAGE@@' /usr/share/pasiv-black-box/quadlets/cockpit/cockpit.container
 grep -Fq '@@NODE_EXPORTER_LISTEN_ADDRESS@@' /usr/share/pasiv-black-box/quadlets/node-exporter/node-exporter.container
+grep -Fq '@@NUT_EXPORTER_LISTEN_ADDRESS@@' /usr/share/pasiv-black-box/quadlets/nut-exporter/nut-exporter.container
+grep -Fq '@@NUT_EXPORTER_LISTEN_ADDRESS@@' /usr/share/pasiv-black-box/quadlets/nut-exporter/examples/prometheus-job.yml
+grep -Fq '@@NUT_UPS_NAME@@' /usr/share/pasiv-black-box/quadlets/nut-exporter/examples/prometheus-job.yml
 
 # External package repositories are build-time inputs only. Keep their repo
 # definitions for provenance and future image composition, but disable them in
