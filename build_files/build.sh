@@ -129,7 +129,7 @@ install -m0755 /ctx/build_files/validate/identity.sh \
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
     bootc podman nmcli nmtui firewall-cmd sshd sudo visudo \
-    upsc nut-scanner pmlogger pminfo \
+    upsc nut-scanner pmlogger pminfo pmrep \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
     btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 \
@@ -160,6 +160,7 @@ rpm -q \
     libusb1-devel \
     pcp \
     pcp-pmda-openmetrics \
+    pcp-system-tools \
     net-snmp-utils \
     selinux-policy-extra \
     cockpit-system \
