@@ -8,6 +8,7 @@ The image ships a reusable library of inactive system Quadlet templates under `/
 | Monitoring network | `network/pasiv-monitoring.network` | `network/docs/NETWORK.md` | - |
 | Caddy | `caddy/caddy.container` | `caddy/docs/CADDY.md` | local `Caddyfile` + env file |
 | Authelia | `authelia/authelia.container` | `authelia/docs/AUTHELIA.md` | documented local config/secrets |
+| Uptime Kuma | `uptime-kuma/uptime-kuma.container` | `uptime-kuma/docs/UPTIME-KUMA.md` | local persistent data directory |
 | Grafana | `grafana/grafana.container` | `grafana/docs/GRAFANA.md` | documented local env file |
 | Prometheus | `prometheus/prometheus.container` | `prometheus/docs/PROMETHEUS.md` | `prometheus/examples/prometheus.yml` |
 | Blackbox Exporter | `blackbox-exporter/blackbox-exporter.container` | `blackbox-exporter/docs/BLACKBOX-EXPORTER.md` | `blackbox-exporter/examples/blackbox.yml` |
@@ -39,5 +40,7 @@ SNMP Exporter has been explicitly validated on physical Pasiv Black Box hardware
 Node Exporter has been explicitly validated on physical Pasiv Black Box hardware with host CPU, memory, filesystems, disk I/O and udev metadata, network counters, hardware temperatures, Prometheus integration over a private host-bridge listener, exporter restart recovery, and automatic recovery after a full host reboot.
 
 NUT Exporter has been explicitly validated on physical Pasiv Black Box hardware against a local NUT server, including battery, runtime, voltage, load, and status metrics; private host-bridge binding; Prometheus and VictoriaMetrics integration; hardware-identity metadata disabled; and automatic recovery of the complete metrics path after a full host reboot.
+
+Uptime Kuma has been explicitly validated on physical Pasiv Black Box hardware with HTTP, TCP, and ICMP Ping monitors; Embedded MariaDB persistence on local storage; no published host port; Caddy reverse proxying over the private monitoring network; Authelia protection; and automatic recovery of all monitors after a full host reboot.
 
 The library is intentionally modular so individual service directories can later be moved to a shared repository without changing their internal layout.
