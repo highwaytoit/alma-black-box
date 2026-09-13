@@ -211,6 +211,11 @@ for group_name in tty dialout; do
 done
 test "$(stat -c '%a %U %G' /etc/ups/upsd.conf)" = "640 root nut"
 test "$(stat -c '%a %U %G' /etc/ups/upsd.users)" = "640 root nut"
+test -f /usr/lib/systemd/system/nut-server.service.d/10-network-online.conf
+grep -Fqx 'Wants=network-online.target' \
+    /usr/lib/systemd/system/nut-server.service.d/10-network-online.conf
+grep -Fqx 'After=network-online.target' \
+    /usr/lib/systemd/system/nut-server.service.d/10-network-online.conf
 
 # EL10 SELinux policy RPM scriptlets may emit transaction warnings during bootc
 # composition. Require the completed policy store to remain readable.
