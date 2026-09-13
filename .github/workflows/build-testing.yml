@@ -178,6 +178,8 @@ jobs:
                 qemu-guest-agent \
                 nut \
                 nut-client \
+                pcp \
+                pcp-pmda-openmetrics \
                 net-snmp-utils \
                 selinux-policy-extra \
                 smartmontools-selinux \

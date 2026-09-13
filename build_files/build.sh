@@ -129,7 +129,7 @@ install -m0755 /ctx/build_files/validate/identity.sh \
 # Build-time validation. If a declared host capability disappears, fail the image.
 for cmd in \
     bootc podman nmcli nmtui firewall-cmd sshd sudo visudo \
-    upsc nut-scanner pmcd pmlogger pminfo \
+    upsc nut-scanner pmlogger pminfo \
     tailscale netbird \
     fwupdmgr smartctl sensors nvme lsusb lspci ethtool powertop \
     btop micro nano vim tmux jq rsync tcpdump dig traceroute nc iperf3 \
@@ -170,6 +170,7 @@ rpm -q \
 
 test -e /usr/lib64/libusb-1.0.so
 
+test -x /usr/libexec/pcp/bin/pmcd
 test -x /usr/libexec/pcp/pmdas/openmetrics/Install
 test -f /usr/lib/tmpfiles.d/pcp-pmda-openmetrics.conf
 test "$(systemctl is-enabled pmcd.service)" = "enabled"
